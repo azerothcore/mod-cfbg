@@ -3,7 +3,7 @@
 # CrossFaction Battleground
 
 ### Module currently requires:
-* Need AC commit [`d40e8946`](https://github.com/azerothcore/azerothcore-wotlk/commit/d40e8946180129b39172c2a1b4d690aa71723917)
+* Need AC commit [`d40e8946`](https://github.com/azerothcore/azerothcore-wotlk/commit/d40e8946180129b39172c2a1b4d690aa71723917) or newer.
 
 ## About module
 This module based patch https://gist.github.com/irancore/10913800. 
@@ -28,6 +28,7 @@ But, all mechanics of change of fraction and so on is remade. Faction change occ
 
 CFBG.Enable = 1
 CFBG.Include.Avg.Ilvl.Enable = 1
+CFBG.Players.Count.In.Group = 3
 ```
 
 ### How to install
