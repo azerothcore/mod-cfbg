@@ -1,5 +1,5 @@
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore module
-
+- Latest build status with azerothcore: [![Build Status](https://travis-ci.org/azerothcore/mod-cfbg.svg?branch=master)](https://travis-ci.org/azerothcore/mod-cfbg)
 # CrossFaction Battleground
 
 ### Module currently requires:
