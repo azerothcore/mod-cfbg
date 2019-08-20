@@ -143,7 +143,7 @@ public:
             sCFBG->FitPlayerInTeam(player, player->GetBattleground() && !player->GetBattleground()->isArena() ? true : false, player->GetBattleground());
     }
 
-    bool CanJoinInBattlegroundQueue(Player* player, uint64 BattlemasterGuid, BattlegroundTypeId BGTypeID, uint8 joinAsGroup, GroupJoinBattlegroundResult& err) override
+    bool CanJoinInBattlegroundQueue(Player* player, uint64 /*BattlemasterGuid*/ , BattlegroundTypeId /*BGTypeID*/, uint8 joinAsGroup, GroupJoinBattlegroundResult& err) override
     {
         if (!sCFBG->IsEnableSystem())
             return true;
@@ -174,7 +174,7 @@ public:
             timeCheck -= diff;
     }
 
-    void OnBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& msg) override
+    void OnBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& /*msg*/) override
     {
         if (!player || !sCFBG->IsEnableSystem())
             return;
