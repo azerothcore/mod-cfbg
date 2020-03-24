@@ -481,6 +481,7 @@ void CFBG::UpdateForget(Player* player)
     }
 }
 
+std::unordered_map<uint64, uint32> BGSpam;
 bool CFBG::SendMessageQueue(BattlegroundQueue* bgqueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
     if (!IsEnableSystem())
@@ -497,7 +498,18 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgqueue, Battleground* bg, PvPDif
     if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_PLAYERONLY))
         ChatHandler(leader->GetSession()).PSendSysMessage("CFBG %s (Levels: %u - %u). Registered: %u/%u", bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
     else
-        sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
-
+    {
+        auto searchGUID = BGSpam.find(leader->GetGUID());
+        
+        if (searchGUID == BGSpam.end())
+            BGSpam[leader->GetGUID()] = 0;
+        
+        if (sWorld->GetGameTime() - BGSpam[leader->GetGUID()] >= 30)
+        {
+            BGSpam[leader->GetGUID()] = sWorld->GetGameTime();
+            sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
+        }
+    }
+        
     return true;
 }
