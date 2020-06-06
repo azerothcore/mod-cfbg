@@ -34,7 +34,8 @@ CFBG.Players.Count.In.Group = 3
 ### How to install
 1. Simply place the module under the `modules` folder of your AzerothCore source folder.
 2. Re-run cmake and launch a clean build of AzerothCore
-3. Done :)
+3. Make sure your `Battleground.InvitationType` is set to `0` in `worldserver.conf`
+4. Done :)
 
 ### Edit module configuration (optional)
 If you need to change the module configuration, go to your server configuration folder (where your worldserver or `worldserver.exe` is), copy `CFBG.conf.dist` to `CFBG.conf` and edit that new file.
