@@ -1,6 +1,6 @@
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore module
-- Latest build status with azerothcore: [![Build Status](https://travis-ci.org/azerothcore/mod-cfbg.svg?branch=master)](https://travis-ci.org/azerothcore/mod-cfbg)
-# CrossFaction Battleground
+## CrossFaction Battleground
+- Latest build status with azerothcore: [![Build Status](https://github.com/azerothcore/mod-cfbg/workflows/core-build/badge.svg?branch=master&event=push)](https://github.com/azerothcore/mod-cfbg)
 
 ### Module currently requires:
 * Need AC commit [`d40e8946`](https://github.com/azerothcore/azerothcore-wotlk/commit/d40e8946180129b39172c2a1b4d690aa71723917) or newer.
