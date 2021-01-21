@@ -70,13 +70,16 @@ public:
 
     bool IsEnableSystem();
     bool IsEnableAvgIlvl();
+    bool IsEnableBalancedTeams();
     uint32 GetMaxPlayersCountInGroup();
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
+    uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
     uint32 GetAllPlayersCountInBG(Battleground* bg);
 
     TeamId GetLowerTeamIdInBG(Battleground* bg);
     TeamId GetLowerAvgIlvlTeamInBg(Battleground* bg);
+    TeamId GetLowerSumPlayerLvlTeamInBg(Battleground* bg);
 
     bool IsAvgIlvlTeamsInBgEqual(Battleground* bg);
     bool SendRealNameQuery(Player* player);
@@ -114,6 +117,7 @@ private:
     // For config
     bool _IsEnableSystem;
     bool _IsEnableAvgIlvl;
+    bool _IsEnableBalancedTeams;
     uint32 _MaxPlayersCountInGroup;
 
     void randomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
