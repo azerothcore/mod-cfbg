@@ -50,31 +50,29 @@ uint32 CFBG::GetMaxPlayersCountInGroup()
 uint32 CFBG::GetBGTeamAverageItemLevel(Battleground* bg, TeamId team)
 {
     if (!bg)
+    {
         return 0;
+    }
 
-    uint32 PlayersCount = bg->GetPlayersCountByTeam(team);
-    if (!PlayersCount)
-        return 0;
-
-    uint32 Sum = 0;
-    uint32 Count = 0;
+    uint32 sum = 0;
+    uint32 count = 0;
 
     for (auto itr : bg->GetPlayers())
     {
         Player* player = itr.second;
-        if (!player || player->GetTeamId() != team)
+        if (!!player && player->GetTeamId() == team)
         {
-            continue;
+            sum += player->GetAverageItemLevel();
+            count++;
         }
-
-        Sum += player->GetAverageItemLevel();
-        Count++;
     }
 
-    if (!Count || !Sum)
+    if (!count || !sum)
+    {
         return 0;
+    }
 
-    return Sum / Count;
+    return sum / count;
 }
 
 uint32 CFBG::GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team)
@@ -84,26 +82,18 @@ uint32 CFBG::GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team)
         return 0;
     }
 
-    uint32 PlayersCount = bg->GetPlayersCountByTeam(team);
-    if (!PlayersCount)
-    {
-        return 0;
-    }
-
-    uint32 Sum = 0;
+    uint32 sum = 0;
 
     for (auto itr : bg->GetPlayers())
     {
         Player* player = itr.second;
-        if (!player || player->GetTeamId() != team)
+        if (!!player && player->GetTeamId() == team)
         {
-            continue;
+            sum += player->getLevel();
         }
-
-        Sum += player->getLevel();
     }
 
-    return Sum;
+    return sum;
 }
 
 TeamId CFBG::GetLowerTeamIdInBG(Battleground* bg)
