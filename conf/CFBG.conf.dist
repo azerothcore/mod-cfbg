@@ -27,8 +27,16 @@
 #       Description: Maximum players in party for enter queue
 #       Default: 3
 #
+#
+#    CFBG.InvitationType
+#        Description: Set Battleground invitation type.
+#        Default:     0 - (Normal, Invite as much players to battlegrounds as queued,
+#                          Don't bother with balance)
+#                     1 - (Experimental, Don't allow to invite much more players
+#                          of one faction)
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
+CFBG.InvitationType = 0
