@@ -73,6 +73,7 @@ public:
     bool IsEnableAvgIlvl();
     bool IsEnableBalancedTeams();
     bool IsEnableEvenTeams();
+    uint32 MaxPlayersThreshold();
     uint32 GetMaxPlayersCountInGroup();
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
@@ -121,6 +122,7 @@ private:
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
     bool _IsEnableEvenTeams;
+    uint32 _MaxPlayersThreshold;
     uint32 _MaxPlayersCountInGroup;
 
     void randomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);

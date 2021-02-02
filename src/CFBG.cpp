@@ -26,6 +26,7 @@ void CFBG::LoadConfig()
     _IsEnableAvgIlvl = sConfigMgr->GetBoolDefault("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetBoolDefault("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetBoolDefault("CFBG.EvenTeams", false);
+    _MaxPlayersThreshold = sConfigMgr->GetIntDefault("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetIntDefault("CFBG.Players.Count.In.Group", 3);
 }
 
@@ -47,6 +48,11 @@ bool CFBG::IsEnableBalancedTeams()
 bool CFBG::IsEnableEvenTeams()
 {
     return _IsEnableEvenTeams;
+}
+
+uint32 CFBG::MaxPlayersThreshold()
+{
+    return _MaxPlayersThreshold;
 }
 
 uint32 CFBG::GetMaxPlayersCountInGroup()
@@ -614,19 +620,23 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
     bgqueue->m_SelectionPools[TEAM_ALLIANCE].Init();
     bgqueue->m_SelectionPools[TEAM_HORDE].Init();
 
+    uint32 bgPlayersSize = bg->GetPlayersSize();
+
     // do not allow to have more player in one faction
-    if (IsEnableEvenTeams())
+    // if treshold is enabled and if the current players quantity inside the BG is greater than the treshold
+    if (IsEnableEvenTeams() && !(MaxPlayersThreshold() > 0 && bgPlayersSize >= MaxPlayersThreshold()*2))
     {
+        uint32 bgQueueSize = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size();
+
         // if there is an even size of players in BG and only one in queue do not allow to join the BG
-        if (bg->GetPlayersSize() % 2 == 0 && bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size() == 1) {
+        if (bgPlayersSize % 2 == 0 && bgQueueSize == 1) {
             return false;
         }
 
         // if the sum of the players in BG and the players in queue is odd, add all in BG except one
-        if ((bg->GetPlayersSize()+bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size()) % 2 != 0) {
+        if ((bgPlayersSize+bgQueueSize) % 2 != 0) {
 
             uint32 c = 0;
-            uint32 bgQueueSize = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size();
 
             BattlegroundQueue::GroupsQueueType::const_iterator Ali_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
             while (c < bgQueueSize-1 && Ali_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree))
