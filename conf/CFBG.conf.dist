@@ -1,5 +1,6 @@
 #
 # Copyright (С) since 2019 Andrei Guluaev (Winfidonarleyan/Kargatum) https://github.com/Winfidonarleyan
+# Copyright (С) since 2019+ AzerothCore <www.azerothcore.org>
 # Licence MIT https://opensource.org/MIT
 #
 
@@ -28,15 +29,15 @@
 #       Default: 3
 #
 #
-#    CFBG.InvitationType
+#    CFBG.EvenTeams
 #        Description: Set Battleground invitation type.
 #        Default:     0 - (Normal, Invite as much players to battlegrounds as queued,
 #                          Don't bother with balance)
-#                     1 - (Experimental, Don't allow to invite much more players
-#                          of one faction)
+#                     1 - (Don't allow to invite much more players of one faction.
+#                          Keep an even quantity of players in Battleground)
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
-CFBG.InvitationType = 0
+CFBG.EvenTeams = 0

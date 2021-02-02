@@ -1,5 +1,6 @@
 /*
  * Copyright (С) since 2019 Andrei Guluaev (Winfidonarleyan/Kargatum) https://github.com/Winfidonarleyan
+ * Copyright (С) since 2019+ AzerothCore <www.azerothcore.org>
  * Licence MIT https://opensource.org/MIT
  */
 
@@ -71,7 +72,7 @@ public:
     bool IsEnableSystem();
     bool IsEnableAvgIlvl();
     bool IsEnableBalancedTeams();
-    bool IsEnableInvitationType();
+    bool IsEnableEvenTeams();
     uint32 GetMaxPlayersCountInGroup();
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
@@ -119,7 +120,7 @@ private:
     bool _IsEnableSystem;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
-    bool _IsEnableInvitationType;
+    bool _IsEnableEvenTeams;
     uint32 _MaxPlayersCountInGroup;
 
     void randomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);

@@ -1,5 +1,6 @@
 /*
  * Copyright (С) since 2019 Andrei Guluaev (Winfidonarleyan/Kargatum) https://github.com/Winfidonarleyan
+ * Copyright (С) since 2019+ AzerothCore <www.azerothcore.org>
  * Licence MIT https://opensource.org/MIT
  */
 
@@ -24,7 +25,7 @@ void CFBG::LoadConfig()
     _IsEnableSystem = sConfigMgr->GetBoolDefault("CFBG.Enable", false);
     _IsEnableAvgIlvl = sConfigMgr->GetBoolDefault("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetBoolDefault("CFBG.BalancedTeams", false);
-    _IsEnableInvitationType = sConfigMgr->GetBoolDefault("CFBG.InvitationType", false);
+    _IsEnableEvenTeams = sConfigMgr->GetBoolDefault("CFBG.EvenTeams", false);
     _MaxPlayersCountInGroup = sConfigMgr->GetIntDefault("CFBG.Players.Count.In.Group", 3);
 }
 
@@ -43,9 +44,9 @@ bool CFBG::IsEnableBalancedTeams()
     return _IsEnableBalancedTeams;
 }
 
-bool CFBG::IsEnableInvitationType()
+bool CFBG::IsEnableEvenTeams()
 {
-    return _IsEnableInvitationType;
+    return _IsEnableEvenTeams;
 }
 
 uint32 CFBG::GetMaxPlayersCountInGroup()
@@ -613,51 +614,43 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
     bgqueue->m_SelectionPools[TEAM_ALLIANCE].Init();
     bgqueue->m_SelectionPools[TEAM_HORDE].Init();
 
-    // quick check if nothing we can do:
-    if (!sBattlegroundMgr->isTesting())
-        if ((aliFree > hordeFree && bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].empty()))
-            return false;
-
-    sLog->outError("###########################################");
-    sLog->outError("BG COUNT %u", bg->GetPlayersSize());
-    sLog->outError("BG QUEUE %u", bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size());
-    sLog->outError("BG balance %u", (bg->GetPlayersSize()+bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size()) % 2 != 0);
-    sLog->outError("###########################################");
-
     // do not allow to have more player in one faction
-    if (IsEnableInvitationType())
+    if (IsEnableEvenTeams())
     {
         // if there is an even size of players in BG and only one in queue do not allow to join the BG
         if (bg->GetPlayersSize() % 2 == 0 && bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size() == 1) {
             return false;
         }
 
-
-        // if the sum of the players in BG and the players in queue is odd join one alliance and one horde per time, otherwise continue above and return true
+        // if the sum of the players in BG and the players in queue is odd, add all in BG except one
         if ((bg->GetPlayersSize()+bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size()) % 2 != 0) {
 
-            // join one horde and one ally per time until the quantity of players in queue is greater than 1
+            uint32 c = 0;
+            uint32 bgQueueSize = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size();
 
             BattlegroundQueue::GroupsQueueType::const_iterator Ali_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
-            BattlegroundQueue::GroupsQueueType::const_iterator Horde_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
-
-            bool alliance = true;
-            while (bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size() > 1)
+            while (c < bgQueueSize-1 && Ali_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree))
             {
-
-                if (alliance && Ali_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end()) {
-                    bgqueue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree);
-                    Ali_itr++;
-                }
-                else if (Horde_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end())
-                {
-                    bgqueue->m_SelectionPools[TEAM_HORDE].AddGroup((*Horde_itr), hordeFree);
-                    Horde_itr++;
-                }
-
-                alliance = !alliance;
+                Ali_itr++;
+                c++;
             }
+
+            c = 0;
+            BattlegroundQueue::GroupsQueueType::const_iterator Horde_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
+            while (c < bgQueueSize-1 && Horde_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_HORDE].AddGroup((*Horde_itr), hordeFree))
+            {
+                Horde_itr++;
+                c++;
+            }
+
+            return true;
         }
+    }
+
+    // quick check if nothing we can do:
+    if (!sBattlegroundMgr->isTesting() && aliFree > hordeFree && bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].empty())
+    {
+        return false;
     }
 
     // ally: at first fill as much as possible
