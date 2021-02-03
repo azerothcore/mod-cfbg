@@ -25,8 +25,8 @@ void CFBG::LoadConfig()
     _IsEnableSystem = sConfigMgr->GetBoolDefault("CFBG.Enable", false);
     _IsEnableAvgIlvl = sConfigMgr->GetBoolDefault("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetBoolDefault("CFBG.BalancedTeams", false);
-    _IsEnableEvenTeams = sConfigMgr->GetBoolDefault("CFBG.EvenTeams", false);
-    _MaxPlayersThreshold = sConfigMgr->GetIntDefault("CFBG.EvenTeams.MaxPlayersThreshold", 5);
+    _IsEnableEvenTeams = sConfigMgr->GetBoolDefault("CFBG.EvenTeams.Enabled", false);
+    _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetIntDefault("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetIntDefault("CFBG.Players.Count.In.Group", 3);
 }
 
@@ -50,9 +50,9 @@ bool CFBG::IsEnableEvenTeams()
     return _IsEnableEvenTeams;
 }
 
-uint32 CFBG::MaxPlayersThreshold()
+uint32 CFBG::EvenTeamsMaxPlayersThreshold()
 {
-    return _MaxPlayersThreshold;
+    return _EvenTeamsMaxPlayersThreshold;
 }
 
 uint32 CFBG::GetMaxPlayersCountInGroup()
@@ -622,9 +622,9 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
 
     uint32 bgPlayersSize = bg->GetPlayersSize();
 
-    // do not allow to have more player in one faction
+    // if CFBG.EvenTeams is enabled, do not allow to have more player in one faction:
     // if treshold is enabled and if the current players quantity inside the BG is greater than the treshold
-    if (IsEnableEvenTeams() && !(MaxPlayersThreshold() > 0 && bgPlayersSize >= MaxPlayersThreshold()*2))
+    if (IsEnableEvenTeams() && !(EvenTeamsMaxPlayersThreshold() > 0 && bgPlayersSize >= EvenTeamsMaxPlayersThreshold()*2))
     {
         uint32 bgQueueSize = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].size();
 
@@ -634,7 +634,7 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
         }
 
         // if the sum of the players in BG and the players in queue is odd, add all in BG except one
-        if ((bgPlayersSize+bgQueueSize) % 2 != 0) {
+        if ((bgPlayersSize + bgQueueSize) % 2 != 0) {
 
             uint32 c = 0;
 
@@ -657,6 +657,7 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
         }
     }
 
+    // if CFBG.EvenTeams is disabled:
     // quick check if nothing we can do:
     if (!sBattlegroundMgr->isTesting() && aliFree > hordeFree && bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].empty())
     {

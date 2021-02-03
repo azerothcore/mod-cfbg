@@ -28,16 +28,14 @@
 #       Description: Maximum players in party for enter queue
 #       Default: 3
 #
-#   CFBG.EvenTeams
+#   CFBG.EvenTeams.Enabled
 #        Description: Set Battleground invitation type.
-#        Default:     0 - (Normal, Invite as much players to battlegrounds as queued,
-#                          Don't bother with balance)
-#                     1 - (Don't allow to invite much more players of one faction.
-#                          Keep an even quantity of players in Battleground)
+#        Default:     0 - (Disabled, one team can have one extra player if an odd number of players queues)
+#                     1 - (Enabled. Get even teams.)
 #
 #   CFBG.EvenTeams.MaxPlayersThreshold
 #       Description: team member quantity until the EvenTeams rule is valid
-#       Default: 5 - (Quantity of players after the EvenTeams rule will be disabled in the BG)
+#       Default: 5 - (Quantity of players per team after the EvenTeams rule will be ignored)
 #                0 - (No treshold)
 #
 
@@ -45,5 +43,5 @@ CFBG.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
-CFBG.EvenTeams = 0
+CFBG.EvenTeams.Enabled = 0
 CFBG.EvenTeams.MaxPlayersThreshold = 5
