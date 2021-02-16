@@ -152,13 +152,16 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
         {
             // if who is joining has the level (or avg item level) lower than the average players level of the joining-queue, so who actually can enter in the battle
             // put him in the stronger team, so swap the team
-            if (player->getLevel() <  averagePlayersLevelQueue || (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue))
+            if (player && (player->getLevel() <  averagePlayersLevelQueue || (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)))
             {
                 team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
             }
         }
 
-        joiningPlayers--;
+        if (joiningPlayers > 0)
+        {
+            joiningPlayers--;
+        }
     }
 
     return team;
@@ -684,10 +687,13 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
         BattlegroundQueue::GroupsQueueType::const_iterator Ali_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
         while (Ali_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree))
         {
-            auto playerGuid = *((*Ali_itr)->Players.begin());
-            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-            sumLevel += player->getLevel();
-            sumItemLevel += player->GetAverageItemLevel();
+            if (*Ali_itr && !(*Ali_itr)->Players.empty())
+            {
+                auto playerGuid = *((*Ali_itr)->Players.begin());
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                sumLevel += player->getLevel();
+                sumItemLevel += player->GetAverageItemLevel();
+            }
             Ali_itr++;
             playerCount++;
         }
@@ -695,10 +701,13 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
         BattlegroundQueue::GroupsQueueType::const_iterator Horde_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
         while (Horde_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_HORDE].AddGroup((*Horde_itr), hordeFree))
         {
-            auto playerGuid = *((*Horde_itr)->Players.begin());
-            Player* player = ObjectAccessor::FindPlayer(playerGuid);
-            sumLevel += player->getLevel();
-            sumItemLevel += player->GetAverageItemLevel();
+            if (*Horde_itr && !(*Horde_itr)->Players.empty())
+            {
+                auto playerGuid = *((*Horde_itr)->Players.begin());
+                Player* player = ObjectAccessor::FindPlayer(playerGuid);
+                sumLevel += player->getLevel();
+                sumItemLevel += player->GetAverageItemLevel();
+            }
             Horde_itr++;
             playerCount++;
         }
