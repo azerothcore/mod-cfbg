@@ -369,7 +369,7 @@ void CFBG::randomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class
                     break;
                 case CLASS_WARRIOR:
                 case CLASS_DEATH_KNIGHT:
-                    *race = getRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_GNOME, RACE_NIGHTELF, RACE_DRAENEI });
+                    *race = getRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_GNOME, /* RACE_NIGHTELF, */ RACE_DRAENEI });
                     *morph = getMorphFromRace(*race, gender);
                     break;
                 case CLASS_PALADIN:
