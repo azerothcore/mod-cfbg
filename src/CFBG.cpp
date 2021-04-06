@@ -150,7 +150,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
         {
             // if who is joining has the level (or avg item level) lower than the average players level of the joining-queue, so who actually can enter in the battle
             // put him in the stronger team, so swap the team
-            if (player && (player->getLevel() <  averagePlayersLevelQueue || (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)))
+            if (player && (player->getLevel() < averagePlayersLevelQueue || (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)))
             {
                 team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
             }
@@ -459,7 +459,8 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
         return;
     }
 
-    if (IsPlayerFake(player)) {
+    if (IsPlayerFake(player))
+    {
         return;
     }
 

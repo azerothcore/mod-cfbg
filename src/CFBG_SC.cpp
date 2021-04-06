@@ -15,7 +15,7 @@
 class CFBG_BG : public BGScript
 {
 public:
-    CFBG_BG() : BGScript("CFBG_BG") {}
+    CFBG_BG() : BGScript("CFBG_BG") { }
 
     void OnBattlegroundBeforeAddPlayer(Battleground* bg, Player* player) override
     {
@@ -26,28 +26,31 @@ public:
             return;
 
         TeamId teamid = player->GetTeamId(true);
-        Group* group = player->GetOriginalGroup();
-        uint32 PlayerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
+        Group* group = player->GetGroup();
+        uint32 playerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
 
-        if (PlayerCountInBG)
+        // If bg has players - to lower team
+        if (playerCountInBG)
         {
             teamid = sCFBG->GetLowerTeamIdInBG(bg, player);
         }
 
         if (!group)
-            sCFBG->ValidatePlayerForBG(bg, player, teamid);
+        {
+            sCFBG->ValidatePlayerForBG(bg, player, sCFBG->GetLowerTeamIdInBG(bg, player));
+        }
         else
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            for (auto const& [playerGuid, _player] : bg->GetPlayers())
             {
-                Player* member = itr->GetSource();
-                if (!member)
-                    continue;
-
-                if (bg->IsPlayerInBattleground(member->GetGUID()))
-                    continue;
-
-                sCFBG->ValidatePlayerForBG(bg, member, teamid);
+                if (_player->GetOriginalGroup() == player->GetGroup())
+                {
+                    sCFBG->ValidatePlayerForBG(bg, player, _player->GetBgTeamId());
+                }
+                else
+                {
+                    sCFBG->ValidatePlayerForBG(bg, player, teamid);
+                }
             }
         }
     }
