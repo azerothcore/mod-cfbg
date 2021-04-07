@@ -204,7 +204,7 @@ uint8 CFBG::GetRandomRace(std::initializer_list<uint32> races)
     return acore::Containers::SelectRandomContainerElement(races);
 }
 
-uint32 CrossFactionBG::GetMorphFromRace(uint8 race, uint8 gender)
+uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
 {
     if (gender == GENDER_MALE)
     {
@@ -264,7 +264,7 @@ uint32 CrossFactionBG::GetMorphFromRace(uint8 race, uint8 gender)
     }
 }
 
-void CrossFactionBG::RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender)
+void CFBG::RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender)
 {
     if (team == TEAM_ALLIANCE)
     {
