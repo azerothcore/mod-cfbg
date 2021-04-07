@@ -15,36 +15,30 @@
 
 enum FakeMorphs
 {
-    // FAKE_M_GOBLIN = 20582,
-    // FAKE_F_GOBLIN = 20583,
-
-    // FAKE_M_UNDEAD missing
-    // FAKE_F_UNDEAD missing
-
-    FAKE_M_FEL_ORC        = 21267,
-    FAKE_F_ORC            = 20316,
-
-    FAKE_M_DWARF          = 20317,
-    // FAKE_F_DWARF missing
-
-    FAKE_M_NIGHT_ELF      = 20318,
-    // FAKE_F_NIGHT_ELF missing
-
-    FAKE_F_DRAENEI        = 20323,
-    FAKE_M_BROKEN_DRAENEI = 21105,
-
-    FAKE_M_TROLL          = 20321,
-    // FAKE_F_TROLL missing
-
-    FAKE_M_HUMAN          = 19723,
-    FAKE_F_HUMAN          = 19724,
-    FAKE_M_BLOOD_ELF      = 20578,
-    FAKE_F_BLOOD_ELF      = 20579,
-    FAKE_F_GNOME          = 20320,
-    FAKE_M_GNOME          = 20580,
-    FAKE_F_TAUREN         = 20584,
-    FAKE_M_TAUREN         = 20585
-
+    FAKE_M_GOBLIN = 20582,
+    FAKE_F_GOBLIN = 20583,
+    FAKE_M_UNDEAD = 20578, //error
+    FAKE_F_UNDEAD = 20579, //error
+    FAKE_M_ORC = 20316, //error
+    FAKE_F_ORC = 20316,
+    FAKE_M_DWARF = 20317,
+    FAKE_F_DWARF = 20317, //error
+    /*FAKE_M_NIGHT_ELF = 20318,
+    FAKE_F_NIGHT_ELF = 20318, //error*/
+    FAKE_M_NIGHT_ELF = 19723, //error
+    FAKE_F_NIGHT_ELF = 19724, //error
+    FAKE_M_DRAENEI = 20323, //error
+    FAKE_F_DRAENEI = 20323,
+    FAKE_M_TROLL = 20321,
+    FAKE_F_TROLL = 20321, //error
+    FAKE_M_HUMAN = 19723,
+    FAKE_F_HUMAN = 19724,
+    FAKE_M_BLOOD_ELF = 20578,
+    FAKE_F_BLOOD_ELF = 20579,
+    FAKE_M_GNOME = 20580,
+    FAKE_F_GNOME = 20581,
+    FAKE_M_TAUREN = 20585,
+    FAKE_F_TAUREN = 20584
 };
 
 struct FakePlayer
