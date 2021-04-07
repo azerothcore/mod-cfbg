@@ -210,56 +210,56 @@ uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
     {
         switch (race)
         {
-        case RACE_HUMAN:
-            return FAKE_M_HUMAN;
-        case RACE_ORC:
-            return FAKE_M_ORC;
-        case RACE_DWARF:
-            return FAKE_M_DWARF;
-        case RACE_NIGHTELF:
-            return FAKE_M_NIGHT_ELF;
-        case RACE_UNDEAD_PLAYER:
-            return FAKE_M_UNDEAD;
-        case RACE_TAUREN:
-            return FAKE_M_TAUREN;
-        case RACE_GNOME:
-            return FAKE_M_GNOME;
-        case RACE_TROLL:
-            return FAKE_M_TROLL;
-        case RACE_BLOODELF:
-            return FAKE_M_BLOOD_ELF;
-        case RACE_DRAENEI:
-            return FAKE_M_DRAENEI;
-        default:
-            return FAKE_M_GOBLIN;
+            case RACE_HUMAN:
+                return FAKE_M_HUMAN;
+            case RACE_ORC:
+                return FAKE_M_ORC;
+            case RACE_DWARF:
+                return FAKE_M_DWARF;
+            case RACE_NIGHTELF:
+                return FAKE_M_NIGHT_ELF;
+            case RACE_UNDEAD_PLAYER:
+                return FAKE_M_UNDEAD;
+            case RACE_TAUREN:
+                return FAKE_M_TAUREN;
+            case RACE_GNOME:
+                return FAKE_M_GNOME;
+            case RACE_TROLL:
+                return FAKE_M_TROLL;
+            case RACE_BLOODELF:
+                return FAKE_M_BLOOD_ELF;
+            case RACE_DRAENEI:
+                return FAKE_M_DRAENEI;
+            default:
+                return FAKE_M_GOBLIN;
         }
     }
     else
     {
         switch (race)
         {
-        case RACE_HUMAN:
-            return FAKE_F_HUMAN;
-        case RACE_ORC:
-            return FAKE_F_ORC;
-        case RACE_DWARF:
-            return FAKE_F_DWARF;
-        case RACE_NIGHTELF:
-            return FAKE_F_NIGHT_ELF;
-        case RACE_UNDEAD_PLAYER:
-            return FAKE_F_UNDEAD;
-        case RACE_TAUREN:
-            return FAKE_F_TAUREN;
-        case RACE_GNOME:
-            return FAKE_F_GNOME;
-        case RACE_TROLL:
-            return FAKE_F_TROLL;
-        case RACE_BLOODELF:
-            return FAKE_F_BLOOD_ELF;
-        case RACE_DRAENEI:
-            return FAKE_F_DRAENEI;
-        default:
-            return FAKE_F_GOBLIN;
+            case RACE_HUMAN:
+                return FAKE_F_HUMAN;
+            case RACE_ORC:
+                return FAKE_F_ORC;
+            case RACE_DWARF:
+                return FAKE_F_DWARF;
+            case RACE_NIGHTELF:
+                return FAKE_F_NIGHT_ELF;
+            case RACE_UNDEAD_PLAYER:
+                return FAKE_F_UNDEAD;
+            case RACE_TAUREN:
+                return FAKE_F_TAUREN;
+            case RACE_GNOME:
+                return FAKE_F_GNOME;
+            case RACE_TROLL:
+                return FAKE_F_TROLL;
+            case RACE_BLOODELF:
+                return FAKE_F_BLOOD_ELF;
+            case RACE_DRAENEI:
+               return FAKE_F_DRAENEI;
+            default:
+                return FAKE_F_GOBLIN;
         }
     }
 }
@@ -270,92 +270,92 @@ void CFBG::RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class
     {
         switch (_class)
         {
-        case CLASS_WARRIOR: //战士
-            *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TAUREN, RACE_TROLL });
-            *morph = GetMorphFromRace(*race, gender);
+            case CLASS_WARRIOR: //战士
+                *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TAUREN, RACE_TROLL });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_PALADIN: //圣骑士
+                *race = RACE_BLOODELF;
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_HUNTER: //猎人
+                *race = GetRandomRace({ RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
             break;
-        case CLASS_PALADIN: //圣骑士
-            *race = RACE_BLOODELF;
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_HUNTER: //猎人
-            *race = GetRandomRace({ RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_ROGUE: //潜行者
-            *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_PRIEST: //牧师
-            *race = GetRandomRace({ RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_DEATH_KNIGHT: //DK
-            *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_SHAMAN: //萨满
-            *race = GetRandomRace({ RACE_ORC, RACE_TAUREN, RACE_TROLL });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_MAGE: //法师
-            *race = GetRandomRace({ RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_WARLOCK: //术士
-            *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_BLOODELF });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_DRUID: //德鲁伊
-            *race = RACE_TAUREN;
-            *morph = GetMorphFromRace(*race, gender);
-            break;
+            case CLASS_ROGUE: //潜行者
+                *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_PRIEST: //牧师
+                *race = GetRandomRace({ RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_DEATH_KNIGHT: //DK
+                *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_SHAMAN: //萨满
+                *race = GetRandomRace({ RACE_ORC, RACE_TAUREN, RACE_TROLL });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_MAGE: //法师
+                *race = GetRandomRace({ RACE_UNDEAD_PLAYER, RACE_TROLL, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_WARLOCK: //术士
+                *race = GetRandomRace({ RACE_ORC, RACE_UNDEAD_PLAYER, RACE_BLOODELF });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_DRUID: //德鲁伊
+                *race = RACE_TAUREN;
+                *morph = GetMorphFromRace(*race, gender);
+                break;
         }
     }
     else
     {
         switch (_class)
         {
-        case CLASS_WARRIOR: //战士
-            *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_PALADIN: //圣骑士
-            *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_HUNTER: //猎人
-            *race = GetRandomRace({ RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_ROGUE: //潜行者
-            *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_PRIEST: //牧师
-            *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_DEATH_KNIGHT: //DK
-            *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_SHAMAN: //萨满
-            *race = RACE_DRAENEI;
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_MAGE: //法师
-            *race = GetRandomRace({ RACE_HUMAN, RACE_GNOME, RACE_DRAENEI });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_WARLOCK: //术士
-            *race = GetRandomRace({ RACE_HUMAN, RACE_GNOME });
-            *morph = GetMorphFromRace(*race, gender);
-            break;
-        case CLASS_DRUID: //德鲁伊
-            *race = RACE_NIGHTELF;
-            *morph = GetMorphFromRace(*race, gender);
-            break;
+            case CLASS_WARRIOR: //战士
+                *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_PALADIN: //圣骑士
+                *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_HUNTER: //猎人
+                *race = GetRandomRace({ RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_ROGUE: //潜行者
+                *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_PRIEST: //牧师
+                *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_DEATH_KNIGHT: //DK
+                *race = GetRandomRace({ RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_GNOME, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_SHAMAN: //萨满
+                *race = RACE_DRAENEI;
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_MAGE: //法师
+                *race = GetRandomRace({ RACE_HUMAN, RACE_GNOME, RACE_DRAENEI });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_WARLOCK: //术士
+                *race = GetRandomRace({ RACE_HUMAN, RACE_GNOME });
+                *morph = GetMorphFromRace(*race, gender);
+                break;
+            case CLASS_DRUID: //德鲁伊
+                *race = RACE_NIGHTELF;
+                *morph = GetMorphFromRace(*race, gender);
+                break;
         }
     }
 }
