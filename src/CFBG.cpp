@@ -788,6 +788,7 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgqueue, Battleground* bg, PvPDif
     uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32)80);
     uint32 MinPlayers = bg->GetMinPlayersPerTeam() * 2;
     uint32 qPlayers = bgqueue->GetPlayersCountInGroupsQueue(bracketId, (BattlegroundQueueGroupTypes)BG_QUEUE_CFBG);
+    uint32 leftPlayers = MinPlayers - qPlayers;
 
     if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_PLAYERONLY))
         ChatHandler(leader->GetSession()).PSendSysMessage("CFBG %s (Levels: %u - %u). Registered: %u/%u", bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
@@ -798,11 +799,16 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgqueue, Battleground* bg, PvPDif
         if (searchGUID == BGSpam.end())
             BGSpam[leader->GetGUID()] = 0;
 
-        if (sWorld->GetGameTime() - BGSpam[leader->GetGUID()] >= 30)
-        {
-            BGSpam[leader->GetGUID()] = sWorld->GetGameTime();
-            sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
-        }
+        // Skip if spam time < 30 secs (default)
+        if (sWorld->GetGameTime() - BGSpam[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
+            return true;
+
+        // If left players > 1 - skip announce
+        if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMITED_ENABLE) && leftPlayers != 1)
+            return true;
+
+        BGSpam[leader->GetGUID()] = sWorld->GetGameTime();
+        sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
     }
 
     return true;
