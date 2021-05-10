@@ -775,7 +775,7 @@ void CFBG::UpdateForget(Player* player)
     }
 }
 
-std::unordered_map<ObjectGuid, uint32> BGSpam;
+std::unordered_map<ObjectGuid, uint32> BGSpamProtection;
 bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
     if (!IsEnableSystem())
@@ -793,18 +793,20 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
     auto qTotal = qHorde + qAlliance;
 
     if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_PLAYERONLY))
+    {
         ChatHandler(leader->GetSession()).PSendSysMessage("CFBG %s (Levels: %u - %u). Registered: %u/%u", bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
+    }
     else
     {
-        auto searchGUID = BGSpam.find(leader->GetGUID());
+        auto searchGUID = BGSpamProtection.find(leader->GetGUID());
 
-        if (searchGUID == BGSpam.end())
-            BGSpam[leader->GetGUID()] = 0;
+        if (searchGUID == BGSpamProtection.end())
+            BGSpamProtection[leader->GetGUID()] = 0;
 
         // Skip if spam time < 30 secs (default)
-        if (sWorld->GetGameTime() - BGSpam[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
+        if (sWorld->GetGameTime() - BGSpamProtection[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
         {
-            return true;
+            return false;
         }
 
         // When limited, it announces only if one more player is needed to start the BG
@@ -816,11 +818,11 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
 
             if (bg->GetBgTypeID() == bgTypeToLimit && qTotal < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_PLAYERS))
             {
-                return;
+                return false;
             }
         }
 
-        BGSpam[leader->GetGUID()] = sWorld->GetGameTime();
+        BGSpamProtection[leader->GetGUID()] = sWorld->GetGameTime();
         sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
     }
 
