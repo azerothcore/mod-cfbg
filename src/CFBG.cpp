@@ -775,7 +775,7 @@ void CFBG::UpdateForget(Player* player)
     }
 }
 
-std::unordered_map<ObjectGuid, uint32> BGSpamProtection;
+std::unordered_map<ObjectGuid, uint32> BGSpamProtectionCFBG;
 bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
     if (!IsEnableSystem())
@@ -798,13 +798,13 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
     }
     else
     {
-        auto searchGUID = BGSpamProtection.find(leader->GetGUID());
+        auto searchGUID = BGSpamProtectionCFBG.find(leader->GetGUID());
 
-        if (searchGUID == BGSpamProtection.end())
-            BGSpamProtection[leader->GetGUID()] = 0;
+        if (searchGUID == BGSpamProtectionCFBG.end())
+            BGSpamProtectionCFBG[leader->GetGUID()] = 0;
 
         // Skip if spam time < 30 secs (default)
-        if (sWorld->GetGameTime() - BGSpamProtection[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
+        if (sWorld->GetGameTime() - BGSpamProtectionCFBG[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
         {
             return false;
         }
@@ -822,7 +822,7 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
             }
         }
 
-        BGSpamProtection[leader->GetGUID()] = sWorld->GetGameTime();
+        BGSpamProtectionCFBG[leader->GetGUID()] = sWorld->GetGameTime();
         sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qPlayers, MinPlayers);
     }
 
