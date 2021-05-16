@@ -778,7 +778,6 @@ void CFBG::UpdateForget(Player* player)
 std::unordered_map<ObjectGuid, uint32> BGSpamProtectionCFBG;
 void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
-
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
 
     char const* bgName = bg->GetName();
