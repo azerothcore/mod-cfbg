@@ -27,6 +27,7 @@ void CFBG::LoadConfig()
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
+    _IsEnableLowLevelClassBalance = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.LowLevelClass", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
 }
@@ -44,6 +45,11 @@ bool CFBG::IsEnableAvgIlvl()
 bool CFBG::IsEnableBalancedTeams()
 {
     return _IsEnableBalancedTeams;
+}
+
+bool CFBG::IsEnableLowLevelClassBalance()
+{
+    return _IsEnableLowLevelClassBalance;
 }
 
 bool CFBG::IsEnableEvenTeams()
@@ -148,11 +154,22 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
     {
         if (joiningPlayers % 2 == 0)
         {
-            // if who is joining has the level (or avg item level) lower than the average players level of the joining-queue, so who actually can enter in the battle
+            // if who is joining (who can enter in the battle):
+            // 1 - has the level lower than the average players level of the joining-queue
+            // - OR -
+            // 2 - has the average item level lower than the average players itme level (and it is NOT a HUNTER in case of CFBG.BalancedTeams.LowLevelClass and BG level 10-19)
+            //
             // put him in the stronger team, so swap the team
-            if (player && (player->getLevel() <  averagePlayersLevelQueue || (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)))
+
+            if (player && (
+                player->getLevel() <  averagePlayersLevelQueue || // 1
+                (   // 2
+                    player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue &&
+                    !(IsEnableLowLevelClassBalance() && player->getLevel() <= 19 && player->getClass() == CLASS_HUNTER)
+                )
+            ))
             {
-                team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+                team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
             }
         }
 
