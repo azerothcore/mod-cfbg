@@ -30,6 +30,7 @@ void CFBG::LoadConfig()
     _IsEnableLowLevelClassBalance = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.LowLevelClass", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
+    LowLevelBalance = sConfigMgr->GetOption<uint32>("CFBG.BalancedTeams.LowLevel", 19);
 }
 
 bool CFBG::IsEnableSystem()
@@ -154,22 +155,32 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
     {
         if (joiningPlayers % 2 == 0)
         {
-            // if who is joining (who can enter in the battle):
-            // 1 - has the level lower than the average players level of the joining-queue
-            // - OR -
-            // 2 - has the average item level lower than the average players itme level (and it is NOT a HUNTER in case of CFBG.BalancedTeams.LowLevelClass and BG level 10-19)
-            //
-            // put him in the stronger team, so swap the team
+            if (player) {
+                bool balancedClass = false;
 
-            if (player && (
-                player->getLevel() <  averagePlayersLevelQueue || // 1
-                (   // 2
-                    player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue &&
-                    !(IsEnableLowLevelClassBalance() && player->getLevel() <= 19 && player->getClass() == CLASS_HUNTER)
+                // if CFBG.BalancedTeams.LowLevelClass is enabled, check the quantity of hunter per team if the player is an hunter
+                if (IsEnableLowLevelClassBalance() &&
+                    (player->getLevel() == LowLevelBalance-1 || player->getLevel() == LowLevelBalance) && // levle N and N-1
+                    player->getClass() == CLASS_HUNTER)
+                {
+                    team = getTeamWithLowerClass(bg, CLASS_HUNTER);
+                    balancedClass = true;
+                }
+
+                // if who is joining (who can enter in the battle):
+                // 1 - has the level lower than the average players level of the joining-queue
+                // - OR -
+                // 2 - has the average item level lower than the average players itme level
+                //
+                // put him in the stronger team, so swap the team
+                if (
+                    (player->getLevel() < averagePlayersLevelQueue || // 1
+                    (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)) // 2
+                    && !balancedClass // check if the team has been balanced already by the class balance logic
                 )
-            ))
-            {
-                team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
+                {
+                    team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
+                }
             }
         }
 
@@ -180,6 +191,28 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
     }
 
     return team;
+}
+
+TeamId CFBG::getTeamWithLowerClass(Battleground *bg, Classes c) {
+    uint16 hordeClassQty = 0;
+    uint16 allianceClassQty = 0;
+
+    for (auto [playerGuid, player] : bg->GetPlayers())
+    {
+        if (player && player->getClass() == c)
+        {
+            if (player->GetTeamId() == TEAM_ALLIANCE)
+            {
+                allianceClassQty++;
+            }
+            else
+            {
+                hordeClassQty++;
+            }
+        }
+    }
+
+    return hordeClassQty > allianceClassQty ? TEAM_ALLIANCE : TEAM_HORDE;
 }
 
 TeamId CFBG::GetLowerAvgIlvlTeamInBg(Battleground* bg)

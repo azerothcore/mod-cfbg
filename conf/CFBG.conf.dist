@@ -24,10 +24,14 @@
 #       Description: Enable check average player level for bg
 #       Default: 1
 #
+#   CFBG.BalancedTeams.LowLevel
+#       Description: Define level for LowLevelClass Balance conf
+#       Default: 19 - (Balance the number of Hunters, considering the players level 19 and 19-1)
+#
 #   CFBG.BalancedTeams.LowLevelClass
-#       Description: Enable class balance for BGs 10-19
+#       Description: Enable class balance for BGs LowLevel
 #       Default: 0
-#                1 - (Enabled. It puts Hunters in the weaker team)
+#                1 - (Enabled. Balance the number of Hunters per team)
 #
 #   CFBG.Players.Count.In.Group
 #       Description: Maximum players in party for enter queue
@@ -47,6 +51,7 @@
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
+CFBG.BalancedTeams.LowLevel = 19
 CFBG.BalancedTeams.LowLevelClass = 0
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3

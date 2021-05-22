@@ -132,11 +132,13 @@ private:
     uint32 averagePlayersLevelQueue;
     uint32 averagePlayersItemLevelQueue;
     uint32 joiningPlayers;
+    uint32 LowLevelBalance;
 
     void RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
 
     uint8 GetRandomRace(std::initializer_list<uint32> races);
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
+    TeamId getTeamWithLowerClass(Battleground *bg, Classes c);
 };
 
 #define sCFBG CFBG::instance()
