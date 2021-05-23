@@ -47,7 +47,10 @@
 #       Default: 5 - (Quantity of players per team after the EvenTeams rule will be ignored)
 #                0 - (No treshold)
 #
-#
+#   CFBG.ResetCooldowns
+#        Description: Reset all cooldowns when joining battleground.
+#        Default:     0  - (Disabled)
+#                     1  - (Enabled)
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
@@ -57,3 +60,4 @@ CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
 CFBG.EvenTeams.Enabled = 0
 CFBG.EvenTeams.MaxPlayersThreshold = 5
+CFBG.ResetCooldowns = 0

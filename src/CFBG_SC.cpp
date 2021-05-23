@@ -58,6 +58,11 @@ public:
             return;
 
         sCFBG->FitPlayerInTeam(player, true, bg);
+
+        if (sCFBG->IsEnableResetCooldowns())
+        {
+            player->RemoveArenaSpellCooldowns(true);
+        }
     }
 
     void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /*winnerTeamId*/) override
@@ -125,10 +130,15 @@ public:
 
     bool CanSendMessageBGQueue(BattlegroundQueue* queue, Player* leader, Battleground* bg, PvPDifficultyEntry const* bracketEntry) override
     {
-        if (!bg->isArena() && sCFBG->IsEnableSystem() && sCFBG->SendMessageQueue(queue, bg, bracketEntry, leader))
-            return false;
+        if (bg->isArena() || !sCFBG->IsEnableSystem())
+        {
+            // if it's arena OR the CFBG is disabled, let the core handle the announcement
+            return true;
+        }
 
-        return true;
+        // otherwise, let the CFBG module handle the announcement
+        sCFBG->SendMessageQueue(queue, bg, bracketEntry, leader);
+        return false;
     }
 };
 

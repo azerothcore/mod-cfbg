@@ -77,6 +77,7 @@ public:
     bool IsEnableBalancedTeams();
     bool IsEnableLowLevelClassBalance();
     bool IsEnableEvenTeams();
+    bool IsEnableResetCooldowns();
     uint32 EvenTeamsMaxPlayersThreshold();
     uint32 GetMaxPlayersCountInGroup();
 
@@ -105,7 +106,7 @@ public:
     bool ShouldForgetBGPlayers(Player* player);
     void SetForgetInListPlayers(Player* player, bool value);
     void UpdateForget(Player* player);
-    bool SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
+    void SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
 
     bool FillPlayersToCFBGWithSpecific(BattlegroundQueue* bgqueue, Battleground* bg, const int32 aliFree, const int32 hordeFree, BattlegroundBracketId thisBracketId, BattlegroundQueue* specificQueue, BattlegroundBracketId specificBracketId);
     bool FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const int32 aliFree, const int32 hordeFree, BattlegroundBracketId bracket_id);
@@ -127,6 +128,7 @@ private:
     bool _IsEnableBalancedTeams;
     bool _IsEnableLowLevelClassBalance;
     bool _IsEnableEvenTeams;
+    bool _IsEnableResetCooldowns;
     uint32 _EvenTeamsMaxPlayersThreshold;
     uint32 _MaxPlayersCountInGroup;
     uint32 averagePlayersLevelQueue;

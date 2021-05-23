@@ -28,6 +28,7 @@ void CFBG::LoadConfig()
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
     _IsEnableLowLevelClassBalance = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.LowLevelClass", false);
+    _IsEnableResetCooldowns = sConfigMgr->GetOption<bool>("CFBG.ResetCooldowns", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
     LowLevelBalance = sConfigMgr->GetOption<uint32>("CFBG.BalancedTeams.LowLevel", 19);
@@ -56,6 +57,11 @@ bool CFBG::IsEnableLowLevelClassBalance()
 bool CFBG::IsEnableEvenTeams()
 {
     return _IsEnableEvenTeams;
+}
+
+bool CFBG::IsEnableResetCooldowns()
+{
+    return _IsEnableResetCooldowns;
 }
 
 uint32 CFBG::EvenTeamsMaxPlayersThreshold()
@@ -826,11 +832,8 @@ void CFBG::UpdateForget(Player* player)
 }
 
 std::unordered_map<ObjectGuid, uint32> BGSpamProtectionCFBG;
-bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
+void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
-    if (!IsEnableSystem())
-        return false;
-
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
 
     char const* bgName = bg->GetName();
@@ -853,7 +856,7 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
         // Skip if spam time < 30 secs (default)
         if (sWorld->GetGameTime() - BGSpamProtectionCFBG[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
         {
-            return false;
+            return;
         }
 
         // When limited, it announces only if there are at least CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_PLAYERS in queue
@@ -865,13 +868,11 @@ bool CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
 
             if (bg->GetBgTypeID() == bgTypeToLimit && qTotal < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_PLAYERS))
             {
-                return false;
+                return;
             }
         }
 
         BGSpamProtectionCFBG[leader->GetGUID()] = sWorld->GetGameTime();
         sWorld->SendWorldText(LANG_BG_QUEUE_ANNOUNCE_WORLD, bgName, q_min_level, q_max_level, qTotal, MinPlayers);
     }
-
-    return true;
 }
