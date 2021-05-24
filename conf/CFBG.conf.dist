@@ -24,10 +24,6 @@
 #       Description: Enable check average player level for bg
 #       Default: 1
 #
-#   CFBG.Players.Count.In.Group
-#       Description: Maximum players in party for enter queue
-#       Default: 3
-#
 #   CFBG.EvenTeams.Enabled
 #        Description: Set Battleground invitation type.
 #        Default:     0 - (Disabled, one team can have one extra player if an odd number of players queues)
@@ -46,7 +42,6 @@
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.Include.Avg.Ilvl.Enable = 0
-CFBG.Players.Count.In.Group = 3
 CFBG.EvenTeams.Enabled = 0
 CFBG.EvenTeams.MaxPlayersThreshold = 5
 CFBG.ResetCooldowns = 0

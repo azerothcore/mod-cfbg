@@ -26,7 +26,7 @@ public:
             return;
 
         TeamId teamid = player->GetTeamId(true);
-        Group* group = player->GetOriginalGroup();
+        Group* group = player->GetGroup();
         uint32 PlayerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
 
         if (PlayerCountInBG)
@@ -41,14 +41,17 @@ public:
             for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
             {
                 Player* member = itr->GetSource();
-                if (!member)
+                if (!member || member->GetGUID() == player->GetGUID())
                     continue;
 
-                if (bg->IsPlayerInBattleground(member->GetGUID()))
+                if (!bg->IsPlayerInBattleground(member->GetGUID()))
                     continue;
 
-                sCFBG->ValidatePlayerForBG(bg, member, teamid);
+                teamid = member->GetTeamId();
+                break;
             }
+
+            sCFBG->ValidatePlayerForBG(bg, player, teamid);
         }
     }
 
@@ -167,7 +170,7 @@ public:
             if (!group)
                 return true;
 
-            if (group->isRaidGroup() || group->GetMembersCount() > sCFBG->GetMaxPlayersCountInGroup())
+            if (group->isRaidGroup())
                 err = ERR_BATTLEGROUND_JOIN_FAILED;
 
             return false;

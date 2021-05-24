@@ -78,7 +78,6 @@ public:
     bool IsEnableEvenTeams();
     bool IsEnableResetCooldowns();
     uint32 EvenTeamsMaxPlayersThreshold();
-    uint32 GetMaxPlayersCountInGroup();
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
     uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
@@ -128,7 +127,6 @@ private:
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
     uint32 _EvenTeamsMaxPlayersThreshold;
-    uint32 _MaxPlayersCountInGroup;
     uint32 averagePlayersLevelQueue;
     uint32 averagePlayersItemLevelQueue;
     uint32 joiningPlayers;
