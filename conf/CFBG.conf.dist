@@ -54,7 +54,7 @@
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
-CFBG.BalancedTeams.Class.LowLevel = 1
+CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10
 CFBG.BalancedTeams.Class.MaxLevel = 19
 CFBG.Include.Avg.Ilvl.Enable = 0
