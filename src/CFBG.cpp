@@ -162,7 +162,8 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
     {
         if (joiningPlayers % 2 == 0)
         {
-            if (player) {
+            if (player)
+            {
                 bool balancedClass = false;
 
                 auto playerLevel = player->getLevel();
