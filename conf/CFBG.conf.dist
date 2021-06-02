@@ -26,8 +26,8 @@
 #
 #   CFBG.BalancedTeams.Class.LowLevel
 #       Description: Enable class balance for BGs LowLevel
-#       Default: 1 - (Enabled. Balance the number of Hunters per team)
-#                0
+#       Default: 0
+#                1 - (Enabled. Balance the number of Hunters per team)
 #
 #   CFBG.BalancedTeams.Class.MinLevel
 #       Description: Define min level to use the LowLevelClass balance
