@@ -27,11 +27,12 @@ void CFBG::LoadConfig()
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
-    _IsEnableLowLevelClassBalance = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.LowLevelClass", false);
+    _IsEnableBalanceClassLowLevel = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.Class.LowLevel", true);
     _IsEnableResetCooldowns = sConfigMgr->GetOption<bool>("CFBG.ResetCooldowns", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
-    LowLevelBalance = sConfigMgr->GetOption<uint32>("CFBG.BalancedTeams.LowLevel", 19);
+    balanceClassMinLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MinLevel", 10);
+    balanceClassMaxLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MaxLevel", 19);
 }
 
 bool CFBG::IsEnableSystem()
@@ -49,9 +50,9 @@ bool CFBG::IsEnableBalancedTeams()
     return _IsEnableBalancedTeams;
 }
 
-bool CFBG::IsEnableLowLevelClassBalance()
+bool CFBG::IsEnableBalanceClassLowLevel()
 {
-    return _IsEnableLowLevelClassBalance;
+    return _IsEnableBalanceClassLowLevel;
 }
 
 bool CFBG::IsEnableEvenTeams()
@@ -164,9 +165,12 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
             if (player) {
                 bool balancedClass = false;
 
+                auto playerLevel = player->getLevel();
+
                 // if CFBG.BalancedTeams.LowLevelClass is enabled, check the quantity of hunter per team if the player is an hunter
-                if (IsEnableLowLevelClassBalance() &&
-                    (player->getLevel() == LowLevelBalance-1 || player->getLevel() == LowLevelBalance) && // levle N and N-1
+                if (IsEnableBalanceClassLowLevel() &&
+                    (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
+                    (playerLevel == bg->GetMaxLevel() || playerLevel == bg->GetMaxLevel()-1) &&
                     player->getClass() == CLASS_HUNTER)
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
@@ -180,8 +184,8 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 //
                 // put him in the stronger team, so swap the team
                 if (
-                    (player->getLevel() < averagePlayersLevelQueue || // 1
-                    (player->getLevel() == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)) // 2
+                    (playerLevel < averagePlayersLevelQueue || // 1
+                    (playerLevel == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)) // 2
                     && !balancedClass // check if the team has been balanced already by the class balance logic
                 )
                 {
@@ -257,7 +261,7 @@ uint32 CFBG::GetAllPlayersCountInBG(Battleground* bg)
 
 uint8 CFBG::GetRandomRace(std::initializer_list<uint32> races)
 {
-    return acore::Containers::SelectRandomContainerElement(races);
+    return Acore::Containers::SelectRandomContainerElement(races);
 }
 
 uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)

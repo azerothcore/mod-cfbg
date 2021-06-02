@@ -24,14 +24,18 @@
 #       Description: Enable check average player level for bg
 #       Default: 1
 #
-#   CFBG.BalancedTeams.LowLevel
-#       Description: Define level for LowLevelClass Balance conf
-#       Default: 19 - (Balance the number of Hunters, considering the players level 19 and 19-1)
-#
-#   CFBG.BalancedTeams.LowLevelClass
+#   CFBG.BalancedTeams.Class.LowLevel
 #       Description: Enable class balance for BGs LowLevel
-#       Default: 0
-#                1 - (Enabled. Balance the number of Hunters per team)
+#       Default: 1 - (Enabled. Balance the number of Hunters per team)
+#                0
+#
+#   CFBG.BalancedTeams.Class.MinLevel
+#       Description: Define min level to use the LowLevelClass balance
+#       Default: 10
+#
+#   CFBG.BalancedTeams.Class.MaxLevel
+#       Description: Define max level to use the LowLevelClass balance
+#       Default: 19
 #
 #   CFBG.Players.Count.In.Group
 #       Description: Maximum players in party for enter queue
@@ -47,15 +51,12 @@
 #       Default: 5 - (Quantity of players per team after the EvenTeams rule will be ignored)
 #                0 - (No treshold)
 #
-#   CFBG.ResetCooldowns
-#        Description: Reset all cooldowns when joining battleground.
-#        Default:     0  - (Disabled)
-#                     1  - (Enabled)
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
-CFBG.BalancedTeams.LowLevel = 19
-CFBG.BalancedTeams.LowLevelClass = 0
+CFBG.BalancedTeams.Class.LowLevel = 1
+CFBG.BalancedTeams.Class.MinLevel = 10
+CFBG.BalancedTeams.Class.MaxLevel = 19
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
 CFBG.EvenTeams.Enabled = 0

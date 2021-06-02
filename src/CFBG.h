@@ -75,7 +75,7 @@ public:
     bool IsEnableSystem();
     bool IsEnableAvgIlvl();
     bool IsEnableBalancedTeams();
-    bool IsEnableLowLevelClassBalance();
+    bool IsEnableBalanceClassLowLevel();
     bool IsEnableEvenTeams();
     bool IsEnableResetCooldowns();
     uint32 EvenTeamsMaxPlayersThreshold();
@@ -126,7 +126,7 @@ private:
     bool _IsEnableSystem;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
-    bool _IsEnableLowLevelClassBalance;
+    bool _IsEnableBalanceClassLowLevel;
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
     uint32 _EvenTeamsMaxPlayersThreshold;
@@ -134,7 +134,8 @@ private:
     uint32 averagePlayersLevelQueue;
     uint32 averagePlayersItemLevelQueue;
     uint32 joiningPlayers;
-    uint32 LowLevelBalance;
+    uint8 balanceClassMinLevel;
+    uint8 balanceClassMaxLevel;
 
     void RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
 
