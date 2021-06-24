@@ -172,7 +172,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 if (IsEnableBalanceClassLowLevel() &&
                     (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
                     (playerLevel == bg->GetMaxLevel() || playerLevel == bg->GetMaxLevel()-1) &&
-                    (player->getClass() == CLASS_HUNTER || playerBalanceClass)) // if the current player is hunter OR the other player that is joining before the hunter
+                    (player->getClass() == CLASS_HUNTER || playerBalanceClass)) // if the current player is hunter OR the other non-hunter player is joining before the hunter
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
                     balancedClass = true;
