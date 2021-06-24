@@ -172,7 +172,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 if (IsEnableBalanceClassLowLevel() &&
                     (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
                     (playerLevel >= bg->GetMaxLevel() - 1) &&
-                    (player->getClass() == CLASS_HUNTER || isHunterJoining)) // if the current player is hunter OR the other non-hunter player is joining before the hunter
+                    (player->getClass() == CLASS_HUNTER || isHunterJoining)) // if the current player is hunter OR there is a hunter in the joining queue while a non-hunter player is joining
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
                     balancedClass = true;
@@ -317,7 +317,7 @@ uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
             case RACE_TAUREN:
                 return FAKE_F_TAUREN;
             default:
-                return FAKE_F_BLOOD_ELF; // this should never happen, it to fix a warning about return value
+                return FAKE_F_BLOOD_ELF; // this should never happen, it's to fix a warning about return value
         }
     }
 }
