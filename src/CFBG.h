@@ -136,6 +136,7 @@ private:
     uint32 joiningPlayers;
     uint8 balanceClassMinLevel;
     uint8 balanceClassMaxLevel;
+    bool playerBalanceClass;
 
     void RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
 

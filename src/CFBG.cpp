@@ -172,10 +172,16 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 if (IsEnableBalanceClassLowLevel() &&
                     (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
                     (playerLevel == bg->GetMaxLevel() || playerLevel == bg->GetMaxLevel()-1) &&
-                    player->getClass() == CLASS_HUNTER)
+                    (player->getClass() == CLASS_HUNTER || playerBalanceClass)) // if the current player is hunter OR the other player that is joining
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
                     balancedClass = true;
+
+                    if (playerBalanceClass && player->getClass() != CLASS_HUNTER)
+                    {
+                        team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
+                        playerBalanceClass = false;
+                    }
                 }
 
                 // if who is joining (who can enter in the battle):
@@ -757,6 +763,7 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
         uint32 sumItemLevel = 0;
         averagePlayersLevelQueue = 0;
         averagePlayersItemLevelQueue = 0;
+        const auto bgMaxLevel = bg->GetMaxLevel();
 
         BattlegroundQueue::GroupsQueueType::const_iterator Ali_itr = bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin();
         while (Ali_itr != bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() && bgqueue->m_SelectionPools[TEAM_ALLIANCE].AddGroup((*Ali_itr), aliFree))
@@ -766,8 +773,15 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
                 auto playerGuid = *((*Ali_itr)->Players.begin());
                 if (auto player = ObjectAccessor::FindConnectedPlayer(playerGuid))
                 {
-                    sumLevel += player->getLevel();
+                    auto playerLevel = player->getLevel();
+
+                    sumLevel += playerLevel;
                     sumItemLevel += player->GetAverageItemLevel();
+
+                    if (IsEnableBalanceClassLowLevel() && player->getClass() == CLASS_HUNTER && (playerLevel == bgMaxLevel || playerLevel == bgMaxLevel-1))
+                    {
+                        playerBalanceClass = true; // there is a hunter in the joining queue
+                    }
                 }
             }
             Ali_itr++;
@@ -782,8 +796,15 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
                 auto playerGuid = *((*Horde_itr)->Players.begin());
                 if (auto player = ObjectAccessor::FindConnectedPlayer(playerGuid))
                 {
-                    sumLevel += player->getLevel();
+                    auto playerLevel = player->getLevel();
+
+                    sumLevel += playerLevel;
                     sumItemLevel += player->GetAverageItemLevel();
+
+                    if (IsEnableBalanceClassLowLevel() && player->getClass() == CLASS_HUNTER && (playerLevel == bgMaxLevel || playerLevel == bgMaxLevel-1))
+                    {
+                        playerBalanceClass = true; // there is a hunter in the joining queue
+                    }
                 }
             }
             Horde_itr++;
