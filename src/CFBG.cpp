@@ -779,7 +779,7 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const
                     sumLevel += playerLevel;
                     sumItemLevel += player->GetAverageItemLevel();
 
-                    if (IsEnableBalanceClassLowLevel() && player->getClass() == CLASS_HUNTER && (playerLevel == bgMaxLevel || playerLevel == bgMaxLevel-1))
+                    if (IsEnableBalanceClassLowLevel() && player->getClass() == CLASS_HUNTER && (playerLevel >= bgMaxLevel - 1))
                     {
                         playerBalanceClass = true; // there is a hunter in the joining queue
                     }
