@@ -172,7 +172,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 if (IsEnableBalanceClassLowLevel() &&
                     (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
                     (playerLevel == bg->GetMaxLevel() || playerLevel == bg->GetMaxLevel()-1) &&
-                    (player->getClass() == CLASS_HUNTER || playerBalanceClass)) // if the current player is hunter OR the other player that is joining
+                    (player->getClass() == CLASS_HUNTER || playerBalanceClass)) // if the current player is hunter OR the other player that is joining before the hunter
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
                     balancedClass = true;
@@ -180,8 +180,9 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                     if (playerBalanceClass && player->getClass() != CLASS_HUNTER)
                     {
                         team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
-                        playerBalanceClass = false;
                     }
+
+                    playerBalanceClass = false;
                 }
 
                 // if who is joining (who can enter in the battle):
