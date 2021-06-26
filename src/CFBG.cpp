@@ -31,8 +31,9 @@ void CFBG::LoadConfig()
     _IsEnableResetCooldowns = sConfigMgr->GetOption<bool>("CFBG.ResetCooldowns", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 5);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
-    balanceClassMinLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MinLevel", 10);
-    balanceClassMaxLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MaxLevel", 19);
+    _balanceClassMinLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MinLevel", 10);
+    _balanceClassMaxLevel = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.MaxLevel", 19);
+    _balanceClassLevelDiff = sConfigMgr->GetOption<uint8>("CFBG.BalancedTeams.Class.LevelDiff", 2);
 }
 
 bool CFBG::IsEnableSystem()
@@ -170,8 +171,8 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
 
                 // if CFBG.BalancedTeams.LowLevelClass is enabled, check the quantity of hunter per team if the player is an hunter
                 if (IsEnableBalanceClassLowLevel() &&
-                    (playerLevel >= balanceClassMinLevel && playerLevel <= balanceClassMaxLevel) &&
-                    (playerLevel >= bg->GetMaxLevel() - 1) &&
+                    (playerLevel >= _balanceClassMinLevel && playerLevel <= _balanceClassMaxLevel) &&
+                    (playerLevel >= getBalanceClassMinLevel(bg)) &&
                     (player->getClass() == CLASS_HUNTER || isHunterJoining)) // if the current player is hunter OR there is a hunter in the joining queue while a non-hunter player is joining
                 {
                     team = getTeamWithLowerClass(bg, CLASS_HUNTER);
@@ -209,6 +210,11 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
     }
 
     return team;
+}
+
+uint8 CFBG::getBalanceClassMinLevel(const Battleground *bg) const
+{
+    return static_cast<uint8>(bg->GetMaxLevel()) - _balanceClassLevelDiff;
 }
 
 TeamId CFBG::getTeamWithLowerClass(Battleground *bg, Classes c) {
@@ -811,7 +817,7 @@ void CFBG::FillPlayersToCFBGonEvenTeams(BattlegroundQueue* bgqueue, Battleground
                 sumLevel += player->getLevel();
                 sumItemLevel += player->GetAverageItemLevel();
 
-                if (IsEnableBalanceClassLowLevel() && isClassJoining(CLASS_HUNTER, player,  bg->GetMaxLevel() - 1))
+                if (IsEnableBalanceClassLowLevel() && isClassJoining(CLASS_HUNTER, player, getBalanceClassMinLevel(bg)))
                 {
                     isHunterJoining = true;
                 }
@@ -823,7 +829,12 @@ void CFBG::FillPlayersToCFBGonEvenTeams(BattlegroundQueue* bgqueue, Battleground
 }
 
 bool CFBG::isClassJoining(uint8 _class, Player* player, uint32 minLevel) {
-    return  player && player->getClass() == _class && (player->getLevel() >= minLevel);
+    if (!player)
+    {
+        return false;
+    }
+
+    return  player->getClass() == _class && (player->getLevel() >= minLevel);
 }
 
 void CFBG::UpdateForget(Player* player)

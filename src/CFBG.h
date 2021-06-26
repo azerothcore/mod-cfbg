@@ -132,8 +132,9 @@ private:
     bool _IsEnableResetCooldowns;
     uint32 _EvenTeamsMaxPlayersThreshold;
     uint32 _MaxPlayersCountInGroup;
-    uint8 balanceClassMinLevel;
-    uint8 balanceClassMaxLevel;
+    uint8 _balanceClassMinLevel;
+    uint8 _balanceClassMaxLevel;
+    uint8 _balanceClassLevelDiff;
 
     uint32 averagePlayersLevelQueue;
     uint32 averagePlayersItemLevelQueue;
@@ -148,6 +149,7 @@ private:
     uint8 GetRandomRace(std::initializer_list<uint32> races);
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
     TeamId getTeamWithLowerClass(Battleground *bg, Classes c);
+    uint8 getBalanceClassMinLevel(const Battleground *bg) const;
 };
 
 #define sCFBG CFBG::instance()

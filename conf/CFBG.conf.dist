@@ -37,6 +37,12 @@
 #       Description: Define max level to use the LowLevelClass balance
 #       Default: 19
 #
+#   CFBG.BalancedTeams.Class.LevelDiff
+#       Description: Only taking into account characters having level >= BgMaxLevel - LevelDiff
+#                    for example in a 10-19 BG, if this value is set to 2, then it will consider only
+#                    players of level 17, 18, 19 (>= 19-2)
+#       Default: 2
+#
 #   CFBG.Players.Count.In.Group
 #       Description: Maximum players in party for enter queue
 #       Default: 3
@@ -57,6 +63,7 @@ CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10
 CFBG.BalancedTeams.Class.MaxLevel = 19
+CFBG.BalancedTeams.Class.LevelDiff = 2
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
 CFBG.EvenTeams.Enabled = 0
