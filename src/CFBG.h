@@ -61,11 +61,6 @@ struct FakePlayer
     TeamId  RealTeamID;
 };
 
-enum CFBGBattlegroundQueueGroupTypes
-{
-    BG_QUEUE_CFBG = 4
-};
-
 class CFBG
 {
 public:
