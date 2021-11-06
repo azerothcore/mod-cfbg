@@ -595,7 +595,7 @@ void CFBG::ClearFakePlayer(Player* player)
     player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
     SetFactionForRace(player, _fakePlayerStore[player].RealRace);
 
-    // Clear forced factions. Rank doesn't matter here, not used when they are removed.
+    // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
     player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_FRIENDLY, false);
     player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_FRIENDLY, false);
 
