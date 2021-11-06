@@ -13,6 +13,7 @@
 #include "Language.h"
 #include "Log.h"
 #include "Opcodes.h"
+#include "ReputationMgr.h"
 #include "ScriptMgr.h"
 
 CFBG* CFBG::instance()
@@ -266,6 +267,22 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId)
     float x, y, z, o;
     bg->GetTeamStartLoc(teamId, x, y, z, o);
     player->TeleportTo(bg->GetMapId(), x, y, z, o);
+
+    if (bg->GetMapId() == MAP_ALTERAC_VALLEY)
+    {
+        if (teamId == TEAM_HORDE)
+        {
+            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_FRIENDLY, true);
+            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_HOSTILE, true);
+        }
+        else
+        {
+            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_HOSTILE, true);
+            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_FRIENDLY, true);
+        }
+
+        player->GetReputationMgr().SendForceReactions();
+    }
 }
 
 uint32 CFBG::GetAllPlayersCountInBG(Battleground* bg)
@@ -577,6 +594,10 @@ void CFBG::ClearFakePlayer(Player* player)
     player->SetDisplayId(_fakePlayerStore[player].RealMorph);
     player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
     SetFactionForRace(player, _fakePlayerStore[player].RealRace);
+
+    // Clear forced factions. Rank doesn't matter here, not used when they are removed.
+    player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_FRIENDLY, false);
+    player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_FRIENDLY, false);
 
     _fakePlayerStore.erase(player);
 }

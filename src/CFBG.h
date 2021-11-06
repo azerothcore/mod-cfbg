@@ -47,6 +47,14 @@ enum FakeMorphs
 
 };
 
+enum AVData
+{
+    MAP_ALTERAC_VALLEY     = 30,
+
+    FACTION_AV_FROSTWOLF_CLAN  = 729,
+    FACTION_AV_STORMPIKE_GUARD = 730,
+};
+
 struct FakePlayer
 {
     // Fake
