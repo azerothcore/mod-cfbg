@@ -16,6 +16,10 @@
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
 
+constexpr uint32 FactionFrostwolfClan  = 729;
+constexpr uint32 FactionStormpikeGuard = 730;
+constexpr uint32 MapAlteracValley = 30;
+
 CFBG* CFBG::instance()
 {
     static CFBG instance;
@@ -268,17 +272,17 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId)
     bg->GetTeamStartLoc(teamId, x, y, z, o);
     player->TeleportTo(bg->GetMapId(), x, y, z, o);
 
-    if (bg->GetMapId() == MAP_ALTERAC_VALLEY)
+    if (bg->GetMapId() == MapAlteracValley)
     {
         if (teamId == TEAM_HORDE)
         {
-            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_FRIENDLY, true);
-            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_HOSTILE, true);
+            player->GetReputationMgr().ApplyForceReaction(FactionFrostwolfClan, REP_FRIENDLY, true);
+            player->GetReputationMgr().ApplyForceReaction(FactionStormpikeGuard, REP_HOSTILE, true);
         }
         else
         {
-            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_HOSTILE, true);
-            player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_FRIENDLY, true);
+            player->GetReputationMgr().ApplyForceReaction(FactionFrostwolfClan, REP_HOSTILE, true);
+            player->GetReputationMgr().ApplyForceReaction(FactionStormpikeGuard, REP_FRIENDLY, true);
         }
 
         player->GetReputationMgr().SendForceReactions();
@@ -596,8 +600,8 @@ void CFBG::ClearFakePlayer(Player* player)
     SetFactionForRace(player, _fakePlayerStore[player].RealRace);
 
     // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
-    player->GetReputationMgr().ApplyForceReaction(FACTION_AV_FROSTWOLF_CLAN, REP_FRIENDLY, false);
-    player->GetReputationMgr().ApplyForceReaction(FACTION_AV_STORMPIKE_GUARD, REP_FRIENDLY, false);
+    player->GetReputationMgr().ApplyForceReaction(FactionFrostwolfClan, REP_FRIENDLY, false);
+    player->GetReputationMgr().ApplyForceReaction(FactionStormpikeGuard, REP_FRIENDLY, false);
 
     _fakePlayerStore.erase(player);
 }
