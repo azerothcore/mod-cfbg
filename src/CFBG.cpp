@@ -197,13 +197,60 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                 // 2 - has the average item level lower than the average players itme level
                 //
                 // put him in the stronger team, so swap the team
-                if (
+                /*if (
                     (playerLevel < averagePlayersLevelQueue || // 1
                     (playerLevel == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)) // 2
                     && !balancedClass // check if the team has been balanced already by the class balance logic
                 )
                 {
                     team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE; // swap the team
+                }*/
+
+                if (!balancedClass)
+                {
+                    uint32 playerCountH = bg->GetPlayersCountByTeam(TEAM_HORDE);
+                    uint32 playerCountA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
+                    // We need to have a diff of 0.5f
+                    // Range of calculation: [minBgLevel, maxBgLevel], i.e: [10,20)
+                    float avgLvlAlliance = playerLevelAlliance / (float)playerCountA;
+                    float avgLvlHorde = playerLevelHorde / (float)playerCountH;
+                    float newAvgLvlAlliance = (playerLevelAlliance + player->getLevel()) / (float)(playerCountA + 1);
+                    float newAvgLvlHorde = (playerLevelHorde + player->getLevel()) / (float)(playerCountH + 1);
+                    float avgLvlDiff = std::abs(avgLvlAlliance - avgLvlHorde);
+
+                    if (avgLvlDiff >= 0.5f)
+                    {
+                        // Check average for both teams
+                        if (avgLvlAlliance < avgLvlHorde)
+                        {
+                            if (newAvgLvlHorde < avgLvlHorde && newAvgLvlAlliance < newAvgLvlHorde)
+                            {
+                                team = TEAM_HORDE;
+                            }
+                            else if ((newAvgLvlHorde < avgLvlHorde && newAvgLvlAlliance >= newAvgLvlHorde) || (newAvgLvlHorde >= avgLvlHorde))
+                            {
+                                team = TEAM_ALLIANCE;
+                            }
+                        }
+                        else if (avgLvlAlliance > avgLvlHorde)
+                        {
+                            if (newAvgLvlAlliance < avgLvlAlliance && newAvgLvlHorde < newAvgLvlAlliance)
+                            {
+                                team = TEAM_ALLIANCE;
+                            }
+                            else if ((newAvgLvlAlliance < avgLvlAlliance && newAvgLvlHorde >= newAvgLvlAlliance) || (newAvgLvlAlliance >= avgLvlAlliance))
+                            {
+                                team = TEAM_HORDE;
+                            }
+                        }
+                    }
+                    else // Just check bg and queue Ilvl
+                    {
+                        if (player->GetAverageItemLevel() < averagePlayersItemLevelQueue)
+                        {
+                            team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+                        }
+                    }
                 }
             }
         }
