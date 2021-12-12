@@ -208,33 +208,65 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                         // Check average for both teams
                         if (avgLvlAlliance < avgLvlHorde)
                         {
-                            if (newAvgLvlHorde < avgLvlHorde && newAvgLvlAlliance < newAvgLvlHorde)
+                            if (newAvgLvlHorde < avgLvlHorde)
                             {
-                                team = TEAM_HORDE;
+                                if (newAvgLvlAlliance < newAvgLvlHorde)
+                                {
+                                    // decide by queue average.
+                                    if (player->getLevel() >= averagePlayersLevelQueue)
+                                    {
+                                        team = TEAM_ALLIANCE;
+                                    }
+                                    else
+                                    {
+                                        team = TEAM_HORDE;
+                                    }
+                                }
+                                else // (newAvgLvlAlliance >= newAvgLvlHorde)
+                                {
+                                    team = TEAM_ALLIANCE;
+                                }
                             }
-                            else if ((newAvgLvlHorde < avgLvlHorde && newAvgLvlAlliance >= newAvgLvlHorde) || (newAvgLvlHorde >= avgLvlHorde))
+                            else // (newAvgLvlHorde >= avgLvlHorde)
                             {
                                 team = TEAM_ALLIANCE;
                             }
                         }
-                        else if (avgLvlAlliance > avgLvlHorde)
+                        else // (avgLvlAlliance >= avgLvlHorde)
                         {
-                            if (newAvgLvlAlliance < avgLvlAlliance && newAvgLvlHorde < newAvgLvlAlliance)
+                            if (newAvgLvlAlliance < avgLvlAlliance)
                             {
-                                team = TEAM_ALLIANCE;
+                                if (newAvgLvlHorde < newAvgLvlAlliance)
+                                {
+                                    // decide by queue average.
+                                    if (player->getLevel() >= averagePlayersLevelQueue)
+                                    {
+                                        team = TEAM_HORDE;
+                                    }
+                                    else
+                                    {
+                                        team = TEAM_ALLIANCE;
+                                    }
+                                }
+                                else // (newAvgLvlHorde >= newAvgLvlAlliance)
+                                {
+                                    team = TEAM_HORDE;
+                                }
                             }
-                            else if ((newAvgLvlAlliance < avgLvlAlliance && newAvgLvlHorde >= newAvgLvlAlliance) || (newAvgLvlAlliance >= avgLvlAlliance))
+                            else // (newAvgLvlAlliance >= avgLvlAlliance)
                             {
                                 team = TEAM_HORDE;
                             }
                         }
                     }
-                    else // Put the player in the stronger team if he is "weak"
+                    else // it's balanced, so we should only check the ilvl
                     {
-                        if (playerLevel == averagePlayersLevelQueue && player->GetAverageItemLevel() < averagePlayersItemLevelQueue)
+                        team = GetLowerAvgIlvlTeamInBg(bg);
+                        if (player->GetAverageItemLevel() < averagePlayersItemLevelQueue) // weak player, put it on the stronger ilvl team
                         {
                             team = team == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
                         }
+                        // no else, if the player has more ilvl than the queue, put him on the weaker team.
                     }
                 }
             }
