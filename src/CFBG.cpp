@@ -199,12 +199,12 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                     // Range of calculation: [minBgLevel, maxBgLevel], i.e: [10,20)
                     float avgLvlAlliance = playerLevelAlliance / (float)playerCountA;
                     float avgLvlHorde = playerLevelHorde / (float)playerCountH;
-                    float newAvgLvlAlliance = (playerLevelAlliance + player->getLevel()) / (float)(playerCountA + 1);
-                    float newAvgLvlHorde = (playerLevelHorde + player->getLevel()) / (float)(playerCountH + 1);
                     float avgLvlDiff = std::abs(avgLvlAlliance - avgLvlHorde);
 
                     if (avgLvlDiff >= 0.5f)
                     {
+                        float newAvgLvlAlliance = (playerLevelAlliance + player->getLevel()) / (float)(playerCountA + 1);
+                        float newAvgLvlHorde = (playerLevelHorde + player->getLevel()) / (float)(playerCountH + 1);
                         // Check average for both teams
                         if (avgLvlAlliance < avgLvlHorde)
                         {
@@ -212,7 +212,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
                             {
                                 if (newAvgLvlAlliance < newAvgLvlHorde)
                                 {
-                                    // decide by queue average.
+                                    // decide by queue average. Basically, if this player is one of the strongest (lvl), put him on the weaker team.
                                     if (player->getLevel() >= averagePlayersLevelQueue)
                                     {
                                         team = TEAM_ALLIANCE;
