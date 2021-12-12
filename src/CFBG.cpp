@@ -193,8 +193,8 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, Player *player)
 
                 if (!balancedClass)
                 {
-                    uint32 playerCountH = bg->GetPlayersCountByTeam(TEAM_HORDE);
-                    uint32 playerCountA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
+                    auto playerCountH = bg->GetPlayersCountByTeam(TEAM_HORDE);
+                    auto playerCountA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
                     // We need to have a diff of 0.5f
                     // Range of calculation: [minBgLevel, maxBgLevel], i.e: [10,20)
                     float avgLvlAlliance = playerLevelAlliance / (float)playerCountA;
