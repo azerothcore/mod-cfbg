@@ -943,6 +943,11 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
                 {
                     if (Player *plr = Session.second->GetPlayer())
                     {
+                        if (plr->GetPlayerSetting(AzerothcorePSSource, SETTING_ANNOUNCER_FLAGS).HasFlag(ANNOUNCER_FLAG_DISABLE_BG_QUEUE))
+                        {
+                            continue;
+                        }
+
                         WorldPacket data(SMSG_SERVER_MESSAGE, (Message.size() + 1));
                         data << uint32(3);
                         data << Message;
