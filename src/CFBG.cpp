@@ -948,7 +948,7 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
                             continue;
                         }
 
-                        WorldPacket data(SMSG_SERVER_MESSAGE, (Message.size() + 1));
+                        WorldPacket data(SMSG_CHAT_SERVER_MESSAGE, (Message.size() + 1));
                         data << uint32(3);
                         data << Message;
                         plr->GetSession()->SendPacket(&data);
