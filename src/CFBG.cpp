@@ -15,6 +15,7 @@
 #include "Opcodes.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
+#include "GameTime.h"
 
 constexpr uint32 FactionFrostwolfClan  = 729;
 constexpr uint32 FactionStormpikeGuard = 730;
@@ -92,7 +93,7 @@ uint32 CFBG::GetBGTeamAverageItemLevel(Battleground* bg, TeamId team)
     uint32 sum = 0;
     uint32 count = 0;
 
-    for (auto [playerGuid, player] : bg->GetPlayers())
+    for (auto const& [playerGuid, player] : bg->GetPlayers())
     {
         if (player && player->GetTeamId() == team)
         {
@@ -118,7 +119,7 @@ uint32 CFBG::GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team)
 
     uint32 sum = 0;
 
-    for (auto [playerGuid, player] : bg->GetPlayers())
+    for (auto const& [playerGuid, player] : bg->GetPlayers())
     {
         if (player && player->GetTeamId() == team)
         {
@@ -133,7 +134,7 @@ TeamId CFBG::GetLowerTeamIdInBG(Battleground* bg, Player* player)
 {
     int32 PlCountA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
     int32 PlCountH = bg->GetPlayersCountByTeam(TEAM_HORDE);
-    uint32 Diff = abs(PlCountA - PlCountH);
+    uint32 Diff = std::abs(PlCountA - PlCountH);
 
     if (Diff)
     {
@@ -227,7 +228,7 @@ TeamId CFBG::getTeamWithLowerClass(Battleground *bg, Classes c) {
     uint16 hordeClassQty = 0;
     uint16 allianceClassQty = 0;
 
-    for (auto [playerGuid, player] : bg->GetPlayers())
+    for (auto const& [playerGuid, player] : bg->GetPlayers())
     {
         if (player && player->getClass() == c)
         {
@@ -555,7 +556,8 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
         return;
     }
 
-    if (IsPlayerFake(player)) {
+    if (IsPlayerFake(player))
+    {
         return;
     }
 
@@ -620,7 +622,7 @@ void CFBG::DoForgetPlayersInList(Player* player)
 {
     // m_FakePlayers is filled from a vector within the battleground
     // they were in previously so all players that have been in that BG will be invalidated.
-    for (auto itr : _fakeNamePlayersStore)
+    for (auto const& itr : _fakeNamePlayersStore)
     {
         WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
         data << itr.second;
@@ -669,7 +671,7 @@ bool CFBG::ShouldForgetInListPlayers(Player* player)
 
 void CFBG::DoForgetPlayersInBG(Player* player, Battleground* bg)
 {
-    for (auto itr : bg->GetPlayers())
+    for (auto const& itr : bg->GetPlayers())
     {
         // Here we invalidate players in the bg to the added player
         WorldPacket data1(SMSG_INVALIDATE_PLAYER, 8);
@@ -837,7 +839,7 @@ void CFBG::FillPlayersToCFBGonEvenTeams(BattlegroundQueue* bgqueue, Battleground
     {
         if (*teamItr && !(*teamItr)->Players.empty())
         {
-            auto playerGuid = *((*teamItr)->Players.begin());
+            auto const& playerGuid = *((*teamItr)->Players.begin());
             if (auto player = ObjectAccessor::FindConnectedPlayer(playerGuid))
             {
                 sumLevel += player->getLevel();
@@ -882,7 +884,7 @@ void CFBG::UpdateForget(Player* player)
     }
 }
 
-std::unordered_map<ObjectGuid, uint32> BGSpamProtectionCFBG;
+std::unordered_map<ObjectGuid, Seconds> BGSpamProtectionCFBG;
 void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader)
 {
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
@@ -911,10 +913,10 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
             auto searchGUID = BGSpamProtectionCFBG.find(leader->GetGUID());
 
             if (searchGUID == BGSpamProtectionCFBG.end())
-                BGSpamProtectionCFBG[leader->GetGUID()] = 0;
+                BGSpamProtectionCFBG[leader->GetGUID()] = 0s;
 
             // Skip if spam time < 30 secs (default)
-            if (sWorld->GetGameTime() - BGSpamProtectionCFBG[leader->GetGUID()] < sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY))
+            if (GameTime::GetGameTime() - BGSpamProtectionCFBG[leader->GetGUID()] < Seconds(sWorld->getIntConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY)))
             {
                 return;
             }
@@ -932,26 +934,26 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
                 }
             }
 
-            BGSpamProtectionCFBG[leader->GetGUID()] = sWorld->GetGameTime();
+            BGSpamProtectionCFBG[leader->GetGUID()] = GameTime::GetGameTime();
 
             if (_showPlayerName)
             {
-                std::string Message = leader->GetPlayerName() + " |cffffffffHas Joined|r |cffff0000" + bg->GetName() + "|r " + "|cffffffff(|r|cff00ffff" + std::to_string(qTotal) + "|r|cffffffff/|r|cff00ffff" + std::to_string(MinPlayers) + "|r|cffffffff)|r";
-                SessionMap Sessions = sWorld->GetAllSessions();
+                std::string msg = Acore::StringFormatFmt("{} |cffffffffHas Joined|r |cffff0000{}|r|cffffffff(|r|cff00ffff{}|r|cffffffff/|r|cff00ffff{}|r|cffffffff)|r",
+                    leader->GetPlayerName(), bg->GetName(), qTotal, MinPlayers);
 
-                for (auto & Session : Sessions)
+                for (auto const& session : sWorld->GetAllSessions())
                 {
-                    if (Player *plr = Session.second->GetPlayer())
+                    if (Player* player = session.second->GetPlayer())
                     {
-                        if (plr->GetPlayerSetting(AzerothcorePSSource, SETTING_ANNOUNCER_FLAGS).HasFlag(ANNOUNCER_FLAG_DISABLE_BG_QUEUE))
+                        if (player->GetPlayerSetting(AzerothcorePSSource, SETTING_ANNOUNCER_FLAGS).HasFlag(ANNOUNCER_FLAG_DISABLE_BG_QUEUE))
                         {
                             continue;
                         }
 
-                        WorldPacket data(SMSG_CHAT_SERVER_MESSAGE, (Message.size() + 1));
+                        WorldPacket data(SMSG_CHAT_SERVER_MESSAGE, (msg.size() + 1));
                         data << uint32(3);
-                        data << Message;
-                        plr->GetSession()->SendPacket(&data);
+                        data << msg;
+                        player->GetSession()->SendPacket(&data);
                     }
                 }
             }
