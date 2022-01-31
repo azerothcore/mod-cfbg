@@ -9,6 +9,7 @@
 #include "GroupMgr.h"
 #include "Opcodes.h"
 #include "ScriptMgr.h"
+#include "ReputationMgr.h"
 
 // CFBG custom script
 class CFBG_BG : public BGScript
@@ -236,6 +237,25 @@ public:
 
         // to gm lang
         lang = LANG_UNIVERSAL;
+    }
+
+    bool OnReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental) override
+    {
+        uint32 repGain = player->GetReputation(factionID);
+        TeamId teamId = player->GetTeamId(true);
+        uint32 diff = 0;
+
+        if ((factionID == FACTION_FROSTWOLF_CLAN && teamId == TEAM_ALLIANCE) ||
+            (factionID == FACTION_STORMPIKE_GUARD && teamId == TEAM_HORDE))
+        {
+
+            diff = standing - repGain;
+            LOG_ERROR("misc", "Faction {}, standing {}, rep {}, diff {}", factionID, standing, repGain, diff);
+            player->GetReputationMgr().ModifyReputation(sFactionStore.LookupEntry(teamId == TEAM_ALLIANCE ? FACTION_STORMPIKE_GUARD : FACTION_FROSTWOLF_CLAN), diff);
+            return false;
+        }
+
+        return true;
     }
 
 private:

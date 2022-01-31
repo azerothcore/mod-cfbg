@@ -61,6 +61,12 @@ struct FakePlayer
     TeamId  RealTeamID;
 };
 
+enum Factions
+{
+    FACTION_FROSTWOLF_CLAN = 729,
+    FACTION_STORMPIKE_GUARD = 730
+};
+
 class CFBG
 {
 public:
