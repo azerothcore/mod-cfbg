@@ -243,12 +243,11 @@ public:
     {
         uint32 repGain = player->GetReputation(factionID);
         TeamId teamId = player->GetTeamId(true);
-        uint32 diff = 0;
 
         if ((factionID == FACTION_FROSTWOLF_CLAN && teamId == TEAM_ALLIANCE) ||
             (factionID == FACTION_STORMPIKE_GUARD && teamId == TEAM_HORDE))
         {
-            diff = standing - repGain;
+            uint32 diff = standing - repGain;
             player->GetReputationMgr().ModifyReputation(sFactionStore.LookupEntry(teamId == TEAM_ALLIANCE ? FACTION_STORMPIKE_GUARD : FACTION_FROSTWOLF_CLAN), diff);
             return false;
         }
