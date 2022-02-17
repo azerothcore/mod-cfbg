@@ -334,9 +334,8 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId)
 
     SetFakeRaceAndMorph(player);
 
-    float x, y, z, o;
-    bg->GetTeamStartLoc(teamId, x, y, z, o);
-    player->TeleportTo(bg->GetMapId(), x, y, z, o);
+    Position const* startPos = bg->GetTeamStartPosition(teamId);
+    player->TeleportTo(bg->GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(), startPos->GetPositionZ(), startPos->GetOrientation());
 
     if (bg->GetMapId() == MapAlteracValley)
     {
@@ -793,7 +792,7 @@ bool CFBG::FillPlayersToCFBGWithSpecific(BattlegroundQueue* bgqueue, Battlegroun
         return false;
 
     // copy groups from both queues to new joined container
-    BattlegroundQueue::GroupsQueueType m_QueuedBoth[BG_TEAMS_COUNT];
+    BattlegroundQueue::GroupsQueueType m_QueuedBoth[PVP_TEAMS_COUNT];
     m_QueuedBoth[TEAM_ALLIANCE].insert(m_QueuedBoth[TEAM_ALLIANCE].end(), specificQueue->m_QueuedGroups[specificBracketId][BG_QUEUE_CFBG].begin(), specificQueue->m_QueuedGroups[specificBracketId][BG_QUEUE_CFBG].end());
     m_QueuedBoth[TEAM_ALLIANCE].insert(m_QueuedBoth[TEAM_ALLIANCE].end(), bgqueue->m_QueuedGroups[thisBracketId][BG_QUEUE_CFBG].begin(), bgqueue->m_QueuedGroups[thisBracketId][BG_QUEUE_CFBG].end());
     m_QueuedBoth[TEAM_HORDE].insert(m_QueuedBoth[TEAM_HORDE].end(), specificQueue->m_QueuedGroups[specificBracketId][BG_QUEUE_CFBG].begin(), specificQueue->m_QueuedGroups[specificBracketId][BG_QUEUE_CFBG].end());
@@ -953,7 +952,7 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
 {
     BattlegroundBracketId bracketId = bracketEntry->GetBracketId();
 
-    char const* bgName = bg->GetName();
+    auto bgName = bg->GetName();
     uint32 q_min_level = std::min(bracketEntry->minLevel, (uint32)80);
     uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32)80);
     uint32 MinPlayers = bg->GetMinPlayersPerTeam() * 2;
@@ -961,7 +960,7 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
 
     if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_PLAYERONLY))
     {
-        ChatHandler(leader->GetSession()).PSendSysMessage("CFBG %s (Levels: %u - %u). Registered: %u/%u", bgName, q_min_level, q_max_level, qTotal, MinPlayers);
+        ChatHandler(leader->GetSession()).PSendSysMessage("CFBG %s (Levels: %u - %u). Registered: %u/%u", bgName.c_str(), q_min_level, q_max_level, qTotal, MinPlayers);
     }
     else
     {
