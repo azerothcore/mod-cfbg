@@ -329,8 +329,15 @@ bool CFBG::IsAvgIlvlTeamsInBgEqual(Battleground* bg)
 void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId)
 {
     BGData bgdata = player->GetBGData();
-    bgdata.bgTeamId = teamId;
-    player->SetBGData(bgdata);
+    if (bgdata.bgTeamId != teamId)
+    {
+        bg->DecreaseInvitedCount(bgdata.bgTeamId);
+
+        bgdata.bgTeamId = teamId;
+        player->SetBGData(bgdata);
+
+        bg->IncreaseInvitedCount(bgdata.bgTeamId);
+    }
 
     SetFakeRaceAndMorph(player);
 
