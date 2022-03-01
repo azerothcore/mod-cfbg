@@ -25,35 +25,38 @@ public:
         }
 
         TeamId teamid = player->GetTeamId(true);
-        Group* group = player->GetOriginalGroup();
-        uint32 PlayerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
+        Group* group = player->GetGroup();
+        uint32 playerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
 
-        if (PlayerCountInBG)
+        if (playerCountInBG)
         {
             teamid = sCFBG->GetLowerTeamIdInBG(bg, player);
         }
 
         if (!group)
         {
-            sCFBG->ValidatePlayerForBG(bg, player, teamid);
+            sCFBG->ValidatePlayerForBG(bg, player, sCFBG->GetLowerTeamIdInBG(bg, player));
         }
         else
         {
-            for (GroupReference* itr = group->GetFirstMember(); itr != nullptr; itr = itr->next())
+            group->DoForAllMembers([bg, teamid, player](Player* member)
             {
-                Player* member = itr->GetSource();
-                if (!member)
-                {
-                    continue;
-                }
-
                 if (bg->IsPlayerInBattleground(member->GetGUID()))
                 {
-                    continue;
+                    return;
+                }
+
+                if (member->GetOriginalGroup() == player->GetGroup())
+                {
+                    sCFBG->ValidatePlayerForBG(bg, player, member->GetBgTeamId());
+                }
+                else
+                {
+                    sCFBG->ValidatePlayerForBG(bg, player, teamid);
                 }
 
                 sCFBG->ValidatePlayerForBG(bg, member, teamid);
-            }
+            });
         }
     }
 
@@ -100,7 +103,8 @@ public:
         }
     }
 
-    void OnAddGroup(BattlegroundQueue* queue, GroupQueueInfo* ginfo, uint32& index, Player* /*leader*/, Group* /*grp*/, PvPDifficultyEntry const* /*bracketEntry*/, bool /*isPremade*/) override
+    void OnAddGroup(BattlegroundQueue* queue, GroupQueueInfo* ginfo, uint32& index, Player* /*leader*/, Group* /*group*/, BattlegroundTypeId /* bgTypeId */, PvPDifficultyEntry const* /* bracketEntry */,
+        uint8 /* arenaType */, bool /* isRated */, bool /* isPremade */, uint32 /* arenaRating */, uint32 /* matchmakerRating */, uint32 /* arenaTeamId */, uint32 /* opponentsArenaTeamId */) override
     {
         if (!queue)
         {
@@ -113,14 +117,14 @@ public:
         }
     }
 
-    bool CanFillPlayersToBG(BattlegroundQueue* queue, Battleground* bg, const int32 aliFree, const int32 hordeFree, BattlegroundBracketId bracket_id) override
+    bool CanFillPlayersToBG(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id) override
     {
         if (!sCFBG->IsEnableSystem() || bg->isArena())
         {
             return true;
         }
 
-        if (sCFBG->FillPlayersToCFBG(queue, bg, aliFree, hordeFree, bracket_id))
+        if (sCFBG->FillPlayersToCFBG(queue, bg, bracket_id))
         {
             return false;
         }
@@ -128,30 +132,14 @@ public:
         return true;
     }
 
-    bool CanFillPlayersToBGWithSpecific(BattlegroundQueue* queue, Battleground* bg, const int32 aliFree, const int32 hordeFree,
-        BattlegroundBracketId thisBracketId, BattlegroundQueue* specificQueue, BattlegroundBracketId specificBracketId) override
+    bool IsCheckNormalMatch(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers) override
     {
         if (!sCFBG->IsEnableSystem() || bg->isArena())
-        {
-            return true;
-        }
-
-        if (sCFBG->FillPlayersToCFBGWithSpecific(queue, bg, aliFree, hordeFree, thisBracketId, specificQueue, specificBracketId))
         {
             return false;
         }
 
-        return true;
-    }
-
-    void OnCheckNormalMatch(BattlegroundQueue* /*queue*/, uint32& Coef, Battleground* bg, BattlegroundBracketId /*bracket_id*/, uint32& /*minPlayers*/, uint32& /*maxPlayers*/) override
-    {
-        if (!sCFBG->IsEnableSystem() || bg->isArena())
-        {
-            return;
-        }
-
-        Coef = 2;
+        return sCFBG->CheckCrossFactionMatch(queue, bg, bracket_id, minPlayers, maxPlayers);
     }
 
     bool CanSendMessageBGQueue(BattlegroundQueue* queue, Player* leader, Battleground* bg, PvPDifficultyEntry const* bracketEntry) override
@@ -256,7 +244,7 @@ public:
     }
 
 private:
-    uint32 timeCheck = 10000;
+    int32 timeCheck = 10000;
 };
 
 class CFBG_World : public WorldScript

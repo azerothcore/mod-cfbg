@@ -110,8 +110,8 @@ public:
     void UpdateForget(Player* player);
     void SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
 
-    bool FillPlayersToCFBGWithSpecific(BattlegroundQueue* bgqueue, Battleground* bg, const int32 aliFree, const int32 hordeFree, BattlegroundBracketId thisBracketId, BattlegroundQueue* specificQueue, BattlegroundBracketId specificBracketId);
-    bool FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, const int32 aliFree, const int32 hordeFree, BattlegroundBracketId bracket_id);
+    bool FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id);
+    bool CheckCrossFactionMatch(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers);
 
 private:
     typedef std::unordered_map<Player*, FakePlayer> FakePlayersContainer;
@@ -152,6 +152,8 @@ private:
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
     TeamId getTeamWithLowerClass(Battleground *bg, Classes c);
     uint8 getBalanceClassMinLevel(const Battleground *bg) const;
+
+    bool CFBGGroupInserter(BattlegroundQueue* queue, Battleground* bg_template, BattlegroundBracketId bracket_id, uint32 allyFree, uint32 hordeFree, uint32 minplayers);
 };
 
 #define sCFBG CFBG::instance()
