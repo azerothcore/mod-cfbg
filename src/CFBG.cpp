@@ -911,9 +911,6 @@ bool CFBG::CFBGGroupInserter(BattlegroundQueue* queue, Battleground* bg, Battleg
     queue->m_SelectionPools[TEAM_ALLIANCE].Init();
     queue->m_SelectionPools[TEAM_HORDE].Init();
 
-    // If players on different factions queue at the same second it'll be random who gets added first
-    bool allyFirst = urand(0, 1);
-
     uint32 bgPlayersSize = bg->GetPlayersSize();
 
     // if CFBG.EvenTeams is enabled, do not allow to have more player in one faction:
@@ -1014,20 +1011,6 @@ bool CFBG::CFBGGroupInserter(BattlegroundQueue* queue, Battleground* bg, Battleg
     {
         return false;
     }
-
-    //// ally: at first fill as much as possible
-    //for (auto const& itr : queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG])
-    //{
-    //    if (!queue->m_SelectionPools[TEAM_ALLIANCE].AddGroup(itr, allyFree))
-    //        break;
-    //}
-
-    //// horde: at first fill as much as possible
-    //for (auto const& itr : queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG])
-    //{
-    //    if (!queue->m_SelectionPools[TEAM_HORDE].AddGroup(itr, hordeFree))
-    //        break;
-    //}
 
     // Return false when we didn't manage to fill the BattleGround in Filling "mode".
     // reset selectionpool for further attempts

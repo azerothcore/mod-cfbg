@@ -39,6 +39,10 @@ public:
         }
         else
         {
+            Player* leader = group->GetLeader();
+            if (leader)
+                teamid = leader->GetTeamId();
+
             group->DoForAllMembers([bg, teamid, player](Player* member)
             {
                 if (bg->IsPlayerInBattleground(member->GetGUID()))
@@ -48,14 +52,12 @@ public:
 
                 if (member->GetOriginalGroup() == player->GetGroup())
                 {
-                    sCFBG->ValidatePlayerForBG(bg, player, member->GetBgTeamId());
+                    sCFBG->ValidatePlayerForBG(bg, member, member->GetBgTeamId());
                 }
                 else
                 {
-                    sCFBG->ValidatePlayerForBG(bg, player, teamid);
+                    sCFBG->ValidatePlayerForBG(bg, member, teamid);
                 }
-
-                sCFBG->ValidatePlayerForBG(bg, member, teamid);
             });
         }
     }
@@ -244,7 +246,7 @@ public:
     }
 
 private:
-    int32 timeCheck = 10000;
+    uint32 timeCheck = 10000;
 };
 
 class CFBG_World : public WorldScript
