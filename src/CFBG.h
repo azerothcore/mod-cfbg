@@ -152,8 +152,6 @@ private:
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
     TeamId getTeamWithLowerClass(Battleground *bg, Classes c);
     uint8 getBalanceClassMinLevel(const Battleground *bg) const;
-
-    bool CFBGGroupInserter(BattlegroundQueue* queue, Battleground* bg_template, BattlegroundBracketId bracket_id, uint32 allyFree, uint32 hordeFree, uint32 minplayers);
 };
 
 #define sCFBG CFBG::instance()
