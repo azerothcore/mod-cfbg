@@ -771,9 +771,6 @@ bool CFBG::IsPlayingNative(Player* player)
 
 bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
 {
-    //return CFBGGroupInserter(bgqueue, bg, bracket_id, maxPlayers, maxPlayers, minPlayers);
-    //return FillPlayersToCFBG(bgqueue, bg, bracket_id);
-
     // If players on different factions queue at the same second it'll be random who gets added first
     bool allyFirst = urand(0, 1);
     TeamId randomTeam = allyFirst ? TEAM_ALLIANCE : TEAM_HORDE;
@@ -788,27 +785,11 @@ bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* bgqueue, Battleground* bg, 
             break;
     }
 
-    if (sWorld->getIntConfig(CONFIG_BATTLEGROUND_INVITATION_TYPE) != BG_QUEUE_INVITATION_TYPE_NO_BALANCE && bgqueue->m_SelectionPools[randomTeam].GetPlayerCount() >= minPlayers * 2)
-    {
-        for (auto const& itr : bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG])
-        {
-            if (itr->IsInvitedToBGInstanceGUID)
-                continue;
-
-            if (!bgqueue->m_SelectionPools[randomTeam].AddGroup(itr, bgqueue->m_SelectionPools[bg->GetOtherTeamId(randomTeam)].GetPlayerCount()))
-                break;
-        }
-
-        // do not allow to start bg with more than 2 players more on 1 faction
-        if (bgqueue->m_SelectionPools[randomTeam].GetPlayerCount() > 2)
-            return false;
-    }
-
-    //allow 1v0 if debug bg
+    // Allow 1v0 if debug bg
     if (sBattlegroundMgr->isTesting() && (bgqueue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() || bgqueue->m_SelectionPools[TEAM_HORDE].GetPlayerCount()))
         return true;
 
-    //return true if there are enough players in selection pools - enable to work .debug bg command correctly
+    // Return true if there are enough players in selection pools - enable to work .debug bg command correctly
     return bgqueue->m_SelectionPools[randomTeam].GetPlayerCount() >= minPlayers * 2;
 }
 
