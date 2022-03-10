@@ -24,42 +24,7 @@ public:
             return;
         }
 
-        TeamId teamid = player->GetTeamId(true);
-        Group* group = player->GetGroup();
-        uint32 playerCountInBG = sCFBG->GetAllPlayersCountInBG(bg);
-
-        if (playerCountInBG)
-        {
-            teamid = sCFBG->GetLowerTeamIdInBG(bg, player);
-        }
-
-        if (!group)
-        {
-            sCFBG->ValidatePlayerForBG(bg, player, sCFBG->GetLowerTeamIdInBG(bg, player));
-        }
-        else
-        {
-            Player* leader = group->GetLeader();
-            if (leader)
-                teamid = leader->GetTeamId();
-
-            group->DoForAllMembers([bg, teamid, player](Player* member)
-            {
-                if (bg->IsPlayerInBattleground(member->GetGUID()))
-                {
-                    return;
-                }
-
-                if (member->GetOriginalGroup() == player->GetGroup())
-                {
-                    sCFBG->ValidatePlayerForBG(bg, member, member->GetBgTeamId());
-                }
-                else
-                {
-                    sCFBG->ValidatePlayerForBG(bg, member, teamid);
-                }
-            });
-        }
+        sCFBG->ValidatePlayerForBG(bg, player, player->GetBgTeamId());
     }
 
     void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override

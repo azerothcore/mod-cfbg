@@ -61,6 +61,19 @@ struct FakePlayer
     TeamId  RealTeamID;
 };
 
+struct CrossFactionGroupInfo
+{
+    explicit CrossFactionGroupInfo(GroupQueueInfo* groupInfo);
+
+    uint32 AveragePlayersLevel{ 0 };
+    uint32 AveragePlayersItemLevel{ 0 };
+    //uint32 JoiningPlayers{ 0 };
+    bool IsHunterJoining{ false };
+
+    CrossFactionGroupInfo() = delete;
+    CrossFactionGroupInfo(CrossFactionGroupInfo&&) = delete;
+};
+
 enum Factions
 {
     FACTION_FROSTWOLF_CLAN = 729,
@@ -74,22 +87,53 @@ public:
 
     void LoadConfig();
 
-    bool IsEnableSystem();
-    bool IsEnableAvgIlvl();
-    bool IsEnableBalancedTeams();
-    bool IsEnableBalanceClassLowLevel();
-    bool IsEnableEvenTeams();
-    bool IsEnableResetCooldowns();
-    uint32 EvenTeamsMaxPlayersThreshold();
-    uint32 GetMaxPlayersCountInGroup();
+    inline bool IsEnableSystem() const
+    {
+        return _IsEnableSystem;
+    }
+
+    inline bool IsEnableAvgIlvl() const
+    {
+        return _IsEnableAvgIlvl;
+    }
+
+    inline bool IsEnableBalancedTeams() const
+    {
+        return _IsEnableBalancedTeams;
+    }
+
+    inline bool IsEnableBalanceClassLowLevel() const
+    {
+        return _IsEnableBalanceClassLowLevel;
+    }
+
+    inline bool IsEnableEvenTeams() const
+    {
+        return _IsEnableEvenTeams;
+    }
+
+    inline bool IsEnableResetCooldowns() const
+    {
+        return _IsEnableResetCooldowns;
+    }
+
+    inline uint32 EvenTeamsMaxPlayersThreshold() const
+    {
+        return _EvenTeamsMaxPlayersThreshold;
+    }
+
+    inline uint32 GetMaxPlayersCountInGroup() const
+    {
+        return _MaxPlayersCountInGroup;
+    }
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
     uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
     uint32 GetAllPlayersCountInBG(Battleground* bg);
 
-    TeamId GetLowerTeamIdInBG(Battleground* bg, Player* player);
+    TeamId GetLowerTeamIdInBG(Battleground* bg, GroupQueueInfo* groupInfo);
     TeamId GetLowerAvgIlvlTeamInBg(Battleground* bg);
-    TeamId SelectBgTeam(Battleground* bg, Player* player);
+    TeamId SelectBgTeam(Battleground* bg, GroupQueueInfo* groupInfo);
 
     bool IsAvgIlvlTeamsInBgEqual(Battleground* bg);
     bool SendRealNameQuery(Player* player);
@@ -123,6 +167,7 @@ private:
     FakeNamePlayersContainer _fakeNamePlayersStore;
     ForgetBGPlayersContainer _forgetBGPlayersStore;
     ForgetInListPlayersContainer _forgetInListPlayersStore;
+    std::unordered_map<GroupQueueInfo*, CrossFactionGroupInfo> _groupsInfo;
 
     // For config
     bool _IsEnableSystem;
@@ -138,12 +183,6 @@ private:
     uint8 _balanceClassMaxLevel;
     uint8 _balanceClassLevelDiff;
 
-    uint32 averagePlayersLevelQueue;
-    uint32 averagePlayersItemLevelQueue;
-    uint32 joiningPlayers;
-
-    bool isHunterJoining;
-    void FillPlayersToCFBGonEvenTeams(BattlegroundQueue* bgqueue, Battleground* bg, const int32 teamFree, BattlegroundBracketId bracket_id, TeamId faction, uint32& playerCount, uint32& sumLevel, uint32& sumItemLevel);
     bool isClassJoining(uint8 _class, Player* player, uint32 minLevel);
 
     void RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
