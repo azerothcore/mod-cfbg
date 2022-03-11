@@ -178,10 +178,7 @@ TeamId CFBG::SelectBgTeam(Battleground* bg, GroupQueueInfo* groupInfo)
 
             if (std::abs(avgLvlAlliance - avgLvlHorde) >= 0.5f)
             {
-                if (avgLvlAlliance < avgLvlHorde)
-                    team = TEAM_ALLIANCE;
-                else
-                    team = TEAM_HORDE;
+                team = avgLvlAlliance < avgLvlHorde ? TEAM_ALLIANCE : TEAM_HORDE;
             }
             else // it's balanced, so we should only check the ilvl
                 team = GetLowerAvgIlvlTeamInBg(bg);
