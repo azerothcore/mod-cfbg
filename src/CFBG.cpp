@@ -679,7 +679,7 @@ bool CFBG::IsPlayingNative(Player* player)
     return player->GetTeamId(true) == player->GetBGData().bgTeamId;
 }
 
-bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
+bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
 {
     uint32 freeA = maxPlayers;
     uint32 freeH = maxPlayers;

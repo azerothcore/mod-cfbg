@@ -155,7 +155,7 @@ public:
     void SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
 
     bool FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id);
-    bool CheckCrossFactionMatch(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers);
+    bool CheckCrossFactionMatch(BattlegroundQueue* bgqueue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers);
 
 private:
     typedef std::unordered_map<Player*, FakePlayer> FakePlayersContainer;
