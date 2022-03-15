@@ -232,16 +232,13 @@ bool CFBG::IsAvgIlvlTeamsInBgEqual(Battleground* bg)
 
 void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId)
 {
-    BGData bgdata = player->GetBGData();
+    if (player->GetTeamId(true) == teamId)
+        return;
+
+    BGData& bgdata = player->GetBGData();
+
     if (bgdata.bgTeamId != teamId)
-    {
-        bg->DecreaseInvitedCount(bgdata.bgTeamId);
-
         bgdata.bgTeamId = teamId;
-        player->SetBGData(bgdata);
-
-        bg->IncreaseInvitedCount(bgdata.bgTeamId);
-    }
 
     SetFakeRaceAndMorph(player);
 
@@ -758,9 +755,6 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, Battl
     // If we're in BG testing one player is enough
     if (sBattlegroundMgr->isTesting() && bgqueue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + bgqueue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0)
         return true;
-
-    //LOG_DEBUG("bg.battleground", "> TEAM_ALLIANCE: {}", bgqueue->m_SelectionPools[TEAM_ALLIANCE].SelectedGroups.size());
-    //LOG_DEBUG("bg.battleground", "> TEAM_HORDE: {}", bgqueue->m_SelectionPools[TEAM_HORDE].SelectedGroups.size());
 
     return true;
 }
