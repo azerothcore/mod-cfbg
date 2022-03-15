@@ -106,7 +106,7 @@ public:
             return false;
         }
 
-        return sCFBG->CheckCrossFactionMatch(queue, bg, bracket_id, minPlayers, maxPlayers);
+        return sCFBG->CheckCrossFactionMatch(queue, bracket_id, minPlayers, maxPlayers);
     }
 
     bool CanSendMessageBGQueue(BattlegroundQueue* queue, Player* leader, Battleground* bg, PvPDifficultyEntry const* bracketEntry) override
