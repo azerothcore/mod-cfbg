@@ -57,6 +57,10 @@
 #       Default: 5 - (Quantity of players per team after the EvenTeams rule will be ignored)
 #                0 - (No treshold)
 #
+#   CFBG.RandomRaceSelection
+#       Description: allows players to choose the race they will be morphed into when joining battlegrounds as the opposite team.
+#       Default: 1 - Random
+#                0 - Player choice
 
 CFBG.Enable = 1
 CFBG.BalancedTeams = 1
@@ -70,3 +74,4 @@ CFBG.EvenTeams.Enabled = 0
 CFBG.EvenTeams.MaxPlayersThreshold = 5
 CFBG.ResetCooldowns = 0
 CFBG.Show.PlayerName = 0
+CFBG.RandomRaceSelection = 1

@@ -80,6 +80,34 @@ enum Factions
     FACTION_STORMPIKE_GUARD = 730
 };
 
+struct RaceData
+{
+    uint8 charClass;
+    std::vector<uint8> availableRacesA;
+    std::vector<uint8> availableRacesH;
+};
+
+RaceData const raceData[12] =
+{
+    { CLASS_NONE, { 0 }, { 0 } },
+    { CLASS_WARRIOR,      { RACE_HUMAN, RACE_DWARF, RACE_GNOME, RACE_NIGHTELF, RACE_DRAENEI  }, { RACE_ORC, RACE_TAUREN, RACE_TROLL } },
+    { CLASS_PALADIN,      { RACE_HUMAN, RACE_DWARF, RACE_DRAENEI },                             { RACE_BLOODELF } },
+    { CLASS_HUNTER,       { RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI },                          { RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF } },
+    { CLASS_ROGUE,        { RACE_HUMAN, RACE_DWARF, RACE_GNOME, RACE_NIGHTELF },                { RACE_ORC, RACE_TROLL, RACE_BLOODELF, RACE_UNDEAD_PLAYER } },
+    { CLASS_PRIEST,       { RACE_HUMAN, RACE_DWARF, RACE_NIGHTELF, RACE_DRAENEI  },             { RACE_TROLL, RACE_BLOODELF, RACE_UNDEAD_PLAYER } },
+    { CLASS_DEATH_KNIGHT, { RACE_HUMAN, RACE_DWARF, RACE_GNOME,  RACE_NIGHTELF, RACE_DRAENEI }, { RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF, RACE_UNDEAD_PLAYER } },
+    { CLASS_SHAMAN,       { RACE_DRAENEI },                                                     { RACE_ORC, RACE_TAUREN, RACE_TROLL  } },
+    { CLASS_MAGE,         { RACE_HUMAN, RACE_GNOME },                                           { RACE_BLOODELF, RACE_TROLL } },
+    { CLASS_WARLOCK,      { RACE_HUMAN, RACE_GNOME },                                           { RACE_ORC, RACE_BLOODELF } },
+    { CLASS_NONE, { 0 }, { 0 } },
+    { CLASS_DRUID,        { RACE_NIGHTELF },                                                    { RACE_TAUREN } },
+};
+
+enum CFBGSettings
+{
+    SETTING_CFBG_RACE = 0
+};
+
 class CFBG
 {
 public:
@@ -125,6 +153,11 @@ public:
     inline uint32 GetMaxPlayersCountInGroup() const
     {
         return _MaxPlayersCountInGroup;
+    }
+
+    inline bool RandomizeRaces() const
+    {
+        return _randomizeRaces;
     }
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
@@ -177,6 +210,7 @@ private:
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
     bool _showPlayerName;
+    bool _randomizeRaces;
     uint32 _EvenTeamsMaxPlayersThreshold;
     uint32 _MaxPlayersCountInGroup;
     uint8 _balanceClassMinLevel;
