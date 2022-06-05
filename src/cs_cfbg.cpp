@@ -92,7 +92,7 @@ public:
 
         if (!raceId)
         {
-            handler->SendSysMessage("CFBG selected race set to random. You will be morphed into a random race when you enter a battleground on the opposite team.");
+            handler->SendSysMessage("Race unavailable. CFBG selected race set to random. You will be morphed into a random race when you enter a battleground on the opposite team.");
         }
         else
         {
