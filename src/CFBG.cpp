@@ -283,10 +283,9 @@ uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
             return gender == GENDER_MALE ? FAKE_M_DWARF : FAKE_F_HUMAN;
         case RACE_GNOME:
             return gender == GENDER_MALE ? FAKE_M_GNOME : FAKE_F_GNOME;
+        case RACE_NIGHTELF: // female is missing and male causes client crashes...
         case RACE_HUMAN:
             return gender == GENDER_MALE ? FAKE_M_HUMAN : FAKE_F_HUMAN;
-        case RACE_NIGHTELF:
-            return gender == GENDER_MALE ? FAKE_M_NIGHT_ELF : FAKE_F_HUMAN;
         default:
             // Default: Blood elf.
             return gender == GENDER_MALE ? FAKE_M_BLOOD_ELF : FAKE_F_BLOOD_ELF;

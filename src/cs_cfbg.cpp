@@ -79,9 +79,16 @@ public:
                     return true;
                 }
 
-                if (player->getGender() == GENDER_FEMALE && (raceId == RACE_NIGHTELF || raceId == RACE_TROLL || raceId == RACE_DWARF))
+                if (raceId == RACE_NIGHTELF)
                 {
-                    handler->SendSysMessage("Female models are not available for the following races: night elf, troll, dwarf.");
+                    handler->SendSysMessage("Night elf models are not available as the female model is missing and the male one causes client crashes.");
+                    handler->SetSentErrorMessage(true);
+                    return true;
+                }
+
+                if (player->getGender() == GENDER_FEMALE && (raceId == RACE_TROLL || raceId == RACE_DWARF))
+                {
+                    handler->SendSysMessage("Female models are not available for the following races: troll, dwarf.");
                     handler->SetSentErrorMessage(true);
                     return true;
                 }
