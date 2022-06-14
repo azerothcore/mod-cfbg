@@ -678,7 +678,7 @@ bool CFBG::IsRaceValidForFaction(uint8 teamId, uint8 race)
 {
     for (auto const& raceVariable : raceInfo)
     {
-        if (teamId == raceVariable.TeamId)
+        if (race == raceVariable.RaceId && teamId == raceVariable.TeamId)
         {
             return true;
         }
