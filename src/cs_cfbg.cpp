@@ -11,26 +11,6 @@
 
 using namespace Acore::ChatCommands;
 
-struct CFBGRaceInfo
-{
-    uint8 RaceId;
-    std::string RaceName;
-    uint8 TeamId;
-};
-
-CFBGRaceInfo const raceInfo[9] =
-{
-    { RACE_HUMAN,    "human",    TEAM_HORDE    },
-    { RACE_NIGHTELF, "nightelf", TEAM_HORDE    },
-    { RACE_DWARF,    "dwarf",    TEAM_HORDE    },
-    { RACE_GNOME,    "gnome",    TEAM_HORDE    },
-    { RACE_DRAENEI,  "draenei",  TEAM_HORDE    },
-    { RACE_ORC,      "orc",      TEAM_ALLIANCE },
-    { RACE_BLOODELF, "bloodelf", TEAM_ALLIANCE },
-    { RACE_TROLL,    "troll",    TEAM_ALLIANCE },
-    { RACE_TAUREN,   "tauren",   TEAM_ALLIANCE }
-};
-
 class cfbg_commandscript : public CommandScript
 {
 public:
@@ -56,6 +36,13 @@ public:
         Player* player = handler->GetPlayer();
 
         uint8 raceId = 0;
+
+        if (!sCFBG->RandomizeRaces())
+        {
+            handler->SendSysMessage("Race selection is currently disabled.");
+            handler->SetSentErrorMessage(true);
+            return true;
+        }
 
         for (auto const& raceVariable : raceInfo)
         {

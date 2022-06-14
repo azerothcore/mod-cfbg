@@ -103,6 +103,26 @@ RaceData const raceData[12] =
     { CLASS_DRUID,        { RACE_NIGHTELF },                                                    { RACE_TAUREN } },
 };
 
+struct CFBGRaceInfo
+{
+    uint8 RaceId;
+    std::string RaceName;
+    uint8 TeamId;
+};
+
+CFBGRaceInfo const raceInfo[9] =
+{
+    { RACE_HUMAN,    "human",    TEAM_HORDE    },
+    { RACE_NIGHTELF, "nightelf", TEAM_HORDE    },
+    { RACE_DWARF,    "dwarf",    TEAM_HORDE    },
+    { RACE_GNOME,    "gnome",    TEAM_HORDE    },
+    { RACE_DRAENEI,  "draenei",  TEAM_HORDE    },
+    { RACE_ORC,      "orc",      TEAM_ALLIANCE },
+    { RACE_BLOODELF, "bloodelf", TEAM_ALLIANCE },
+    { RACE_TROLL,    "troll",    TEAM_ALLIANCE },
+    { RACE_TAUREN,   "tauren",   TEAM_ALLIANCE }
+};
+
 enum CFBGSettings
 {
     SETTING_CFBG_RACE = 0
@@ -189,6 +209,8 @@ public:
 
     bool FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id);
     bool CheckCrossFactionMatch(BattlegroundQueue* bgqueue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers);
+
+    bool IsRaceValidForFaction(uint8 teamId, uint8 race);
 
 private:
     typedef std::unordered_map<Player*, FakePlayer> FakePlayersContainer;

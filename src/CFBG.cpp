@@ -330,7 +330,7 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
 
     uint8 selectedRace = player->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
 
-    if (!RandomizeRaces() && selectedRace)
+    if (!RandomizeRaces() || !selectedRace || !IsRaceValidForFaction(player->GetTeamId(true), selectedRace))
     {
         FakeRace = selectedRace;
         FakeMorph = GetMorphFromRace(FakeRace, player->getGender());
@@ -672,4 +672,17 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
             }
         }
     }
+}
+
+bool CFBG::IsRaceValidForFaction(uint8 teamId, uint8 race)
+{
+    for (auto const& raceVariable : raceInfo)
+    {
+        if (teamId == raceVariable.TeamId)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
