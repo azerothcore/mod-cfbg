@@ -330,7 +330,7 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
 
     uint8 selectedRace = player->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
 
-    if (!RandomizeRaces() || !selectedRace || !IsRaceValidForFaction(player->GetTeamId(true), selectedRace))
+    if (!RandomizeRaces() && selectedRace && IsRaceValidForFaction(player->GetTeamId(true), selectedRace))
     {
         FakeRace = selectedRace;
         FakeMorph = GetMorphFromRace(FakeRace, player->getGender());
