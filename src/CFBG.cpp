@@ -1014,6 +1014,9 @@ void CFBG::InviteSameCountGroups(SameCountGroupsList& sameCountGroups, GroupsLis
     for (auto& [groupTarget, groupListForTarger] : sameCountGroups)
     {
         auto teamTarget{ InviteGroupToBG(groupTarget, bgQueue, maxAli, maxHorde, bg) };
+        if (teamTarget == TEAM_NEUTRAL)
+            continue;
+
         bool IsAllInvited{ true };
 
         for (auto const& groupItr : groupListForTarger)
