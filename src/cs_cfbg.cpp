@@ -44,7 +44,7 @@ public:
             return true;
         }
 
-        for (auto const& raceVariable : raceInfo)
+        for (auto const& raceVariable : *sCFBG->GetRaceInfo())
         {
             if (raceInput == raceVariable.RaceName)
             {
@@ -98,6 +98,8 @@ public:
 
     static bool IsRaceValidForClass(Player* player, uint8 fakeRace)
     {
+        auto raceData{ *sCFBG->GetRaceData() };
+
         std::vector<uint8> availableRacesForClass = player->GetTeamId(true) == TEAM_HORDE ?
             raceData[player->getClass()].availableRacesA : raceData[player->getClass()].availableRacesH;
 

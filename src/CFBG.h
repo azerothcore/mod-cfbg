@@ -7,35 +7,29 @@
 #ifndef _CFBG_H_
 #define _CFBG_H_
 
-#include "Common.h"
-#include "Battleground.h"
-#include "BattlegroundQueue.h"
-#include "Player.h"
+#include "SharedDefines.h"
+#include "DBCEnums.h"
+#include "ObjectGuid.h"
+#include <array>
 #include <unordered_map>
+#include <vector>
+
+class Player;
+class Battleground;
+class BattlegroundQueue;
+class GroupQueueInfo;
+
+struct PvPDifficultyEntry;
 
 enum FakeMorphs
 {
-    // FAKE_M_GOBLIN = 20582,
-    // FAKE_F_GOBLIN = 20583,
-
-    // FAKE_M_UNDEAD missing
-    // FAKE_F_UNDEAD missing
-
     FAKE_M_FEL_ORC        = 21267,
     FAKE_F_ORC            = 20316,
-
     FAKE_M_DWARF          = 20317,
-    // FAKE_F_DWARF missing
-
     FAKE_M_NIGHT_ELF      = 20318,
-    // FAKE_F_NIGHT_ELF missing
-
     FAKE_F_DRAENEI        = 20323,
     FAKE_M_BROKEN_DRAENEI = 21105,
-
     FAKE_M_TROLL          = 20321,
-    // FAKE_F_TROLL missing
-
     FAKE_M_HUMAN          = 19723,
     FAKE_F_HUMAN          = 19724,
     FAKE_M_BLOOD_ELF      = 20578,
@@ -44,8 +38,13 @@ enum FakeMorphs
     FAKE_M_GNOME          = 20580,
     FAKE_F_TAUREN         = 20584,
     FAKE_M_TAUREN         = 20585
-
 };
+
+constexpr auto FACTION_FROSTWOLF_CLAN = 729;
+constexpr auto FACTION_STORMPIKE_GUARD = 730;
+
+// Cfbg settings
+constexpr auto SETTING_CFBG_RACE = 0;
 
 struct FakePlayer
 {
@@ -61,46 +60,11 @@ struct FakePlayer
     TeamId  RealTeamID;
 };
 
-struct CrossFactionGroupInfo
-{
-    explicit CrossFactionGroupInfo(GroupQueueInfo* groupInfo);
-
-    uint32 AveragePlayersLevel{ 0 };
-    uint32 AveragePlayersItemLevel{ 0 };
-    //uint32 JoiningPlayers{ 0 };
-    bool IsHunterJoining{ false };
-
-    CrossFactionGroupInfo() = delete;
-    CrossFactionGroupInfo(CrossFactionGroupInfo&&) = delete;
-};
-
-enum Factions
-{
-    FACTION_FROSTWOLF_CLAN = 729,
-    FACTION_STORMPIKE_GUARD = 730
-};
-
 struct RaceData
 {
     uint8 charClass;
     std::vector<uint8> availableRacesA;
     std::vector<uint8> availableRacesH;
-};
-
-RaceData const raceData[12] =
-{
-    { CLASS_NONE, { 0 }, { 0 } },
-    { CLASS_WARRIOR,      { RACE_HUMAN, RACE_DWARF, RACE_GNOME, RACE_DRAENEI  }, { RACE_ORC, RACE_TAUREN, RACE_TROLL } },
-    { CLASS_PALADIN,      { RACE_HUMAN, RACE_DWARF, RACE_DRAENEI },                             { RACE_BLOODELF } },
-    { CLASS_HUNTER,       { RACE_DWARF, RACE_DRAENEI },                          { RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF } },
-    { CLASS_ROGUE,        { RACE_HUMAN, RACE_DWARF, RACE_GNOME },                { RACE_ORC, RACE_TROLL, RACE_BLOODELF } },
-    { CLASS_PRIEST,       { RACE_HUMAN, RACE_DWARF, RACE_DRAENEI  },             { RACE_TROLL, RACE_BLOODELF } },
-    { CLASS_DEATH_KNIGHT, { RACE_HUMAN, RACE_DWARF, RACE_GNOME, RACE_DRAENEI }, { RACE_ORC, RACE_TAUREN, RACE_TROLL, RACE_BLOODELF } },
-    { CLASS_SHAMAN,       { RACE_DRAENEI },                                                     { RACE_ORC, RACE_TAUREN, RACE_TROLL  } },
-    { CLASS_MAGE,         { RACE_HUMAN, RACE_GNOME },                                           { RACE_BLOODELF, RACE_TROLL } },
-    { CLASS_WARLOCK,      { RACE_HUMAN, RACE_GNOME },                                           { RACE_ORC, RACE_BLOODELF } },
-    { CLASS_NONE, { 0 }, { 0 } },
-    { CLASS_DRUID,        { RACE_HUMAN },                                                    { RACE_TAUREN } },
 };
 
 struct CFBGRaceInfo
@@ -110,83 +74,69 @@ struct CFBGRaceInfo
     uint8 TeamId;
 };
 
-CFBGRaceInfo const raceInfo[9] =
+struct CrossFactionGroupInfo
 {
-    { RACE_HUMAN,    "human",    TEAM_HORDE    },
-    { RACE_NIGHTELF, "nightelf", TEAM_HORDE    },
-    { RACE_DWARF,    "dwarf",    TEAM_HORDE    },
-    { RACE_GNOME,    "gnome",    TEAM_HORDE    },
-    { RACE_DRAENEI,  "draenei",  TEAM_HORDE    },
-    { RACE_ORC,      "orc",      TEAM_ALLIANCE },
-    { RACE_BLOODELF, "bloodelf", TEAM_ALLIANCE },
-    { RACE_TROLL,    "troll",    TEAM_ALLIANCE },
-    { RACE_TAUREN,   "tauren",   TEAM_ALLIANCE }
+    explicit CrossFactionGroupInfo(GroupQueueInfo* groupInfo);
+
+    uint32 AveragePlayersLevel{ 0 };
+    uint32 AveragePlayersItemLevel{ 0 };
+    bool IsHunterJoining{ false };
+    uint32 SumAverageItemLevel{ 0 };
+    uint32 SumPlayerLevel{ 0 };
+
+    CrossFactionGroupInfo() = delete;
+    CrossFactionGroupInfo(CrossFactionGroupInfo&&) = delete;
 };
 
-enum CFBGSettings
+struct CrossFactionQueueInfo
 {
-    SETTING_CFBG_RACE = 0
+    explicit CrossFactionQueueInfo(BattlegroundQueue* bgQueue);
+
+    TeamId GetLowerTeamIdInBG(GroupQueueInfo* groupInfo);
+
+    std::array<uint32, 2> PlayersCount{};
+    std::array<uint32, 2> SumAverageItemLevel{};
+    std::array<uint32, 2> SumPlayerLevel{};
+
+private:
+    TeamId SelectBgTeam(GroupQueueInfo* groupInfo);
+    TeamId GetLowerAverageItemLevelTeam();
+
+    CrossFactionQueueInfo() = delete;
+    CrossFactionQueueInfo(CrossFactionQueueInfo&&) = delete;
 };
 
 class CFBG
 {
 public:
+    using RandomSkinInfo = std::pair<uint8/*race*/, uint32/*morph*/>;
+    using GroupsList = std::vector<GroupQueueInfo*>;
+    using SameCountGroupsList = std::vector<std::pair<GroupQueueInfo*, GroupsList>>;
+
     static CFBG* instance();
 
     void LoadConfig();
 
-    inline bool IsEnableSystem() const
-    {
-        return _IsEnableSystem;
-    }
-
-    inline bool IsEnableAvgIlvl() const
-    {
-        return _IsEnableAvgIlvl;
-    }
-
-    inline bool IsEnableBalancedTeams() const
-    {
-        return _IsEnableBalancedTeams;
-    }
-
-    inline bool IsEnableBalanceClassLowLevel() const
-    {
-        return _IsEnableBalanceClassLowLevel;
-    }
-
-    inline bool IsEnableEvenTeams() const
-    {
-        return _IsEnableEvenTeams;
-    }
-
-    inline bool IsEnableResetCooldowns() const
-    {
-        return _IsEnableResetCooldowns;
-    }
-
-    inline uint32 EvenTeamsMaxPlayersThreshold() const
-    {
-        return _EvenTeamsMaxPlayersThreshold;
-    }
-
-    inline uint32 GetMaxPlayersCountInGroup() const
-    {
-        return _MaxPlayersCountInGroup;
-    }
-
-    inline bool RandomizeRaces() const
-    {
-        return _randomizeRaces;
-    }
+    inline bool IsEnableSystem() const { return _IsEnableSystem; }
+    inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
+    inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
+    inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
+    inline bool IsEnableEvenTeams() const { return _IsEnableEvenTeams; }
+    inline bool IsEnableResetCooldowns() const { return _IsEnableResetCooldowns; }
+    inline uint32 EvenTeamsMaxPlayersThreshold() const { return _EvenTeamsMaxPlayersThreshold; }
+    inline uint32 GetMaxPlayersCountInGroup() const { return _MaxPlayersCountInGroup; }
+    inline uint8 GetBalanceClassMinLevel() const { return _balanceClassMinLevel; }
+    inline uint8 GetBalanceClassMaxLevel() const { return _balanceClassMaxLevel; }
+    inline uint8 GetBalanceClassLevelDiff() const { return _balanceClassLevelDiff; }
+    inline bool RandomizeRaces() const { return _randomizeRaces; }
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
     uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
     uint32 GetAllPlayersCountInBG(Battleground* bg);
 
-    TeamId GetLowerTeamIdInBG(Battleground* bg, GroupQueueInfo* groupInfo);
+    TeamId GetLowerTeamIdInBG(Battleground* bg, BattlegroundQueue* bgQueue, GroupQueueInfo* groupInfo);
     TeamId GetLowerAvgIlvlTeamInBg(Battleground* bg);
-    TeamId SelectBgTeam(Battleground* bg, GroupQueueInfo* groupInfo);
+    TeamId SelectBgTeam(Battleground* bg, GroupQueueInfo* groupInfo, CrossFactionQueueInfo* cfQueueInfo);
 
     bool IsAvgIlvlTeamsInBgEqual(Battleground* bg);
     bool SendRealNameQuery(Player* player);
@@ -194,7 +144,7 @@ public:
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
 
-    void ValidatePlayerForBG(Battleground* bg, Player* player, TeamId teamId);
+    void ValidatePlayerForBG(Battleground* bg, Player* player);
     void SetFakeRaceAndMorph(Player* player);
     void SetFactionForRace(Player* player, uint8 Race);
     void ClearFakePlayer(Player* player);
@@ -211,18 +161,32 @@ public:
     bool CheckCrossFactionMatch(BattlegroundQueue* bgqueue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers);
 
     bool IsRaceValidForFaction(uint8 teamId, uint8 race);
+    TeamId getTeamWithLowerClass(Battleground* bg, Classes c);
+    uint8 getBalanceClassMinLevel(const Battleground* bg) const;
+
+    inline auto GetRaceData() { return &_raceData; }
+    inline auto GetRaceInfo() { return &_raceInfo; }
 
 private:
-    typedef std::unordered_map<Player*, FakePlayer> FakePlayersContainer;
-    typedef std::unordered_map<Player*, ObjectGuid> FakeNamePlayersContainer;
-    typedef std::unordered_map<Player*, bool> ForgetBGPlayersContainer;
-    typedef std::unordered_map<Player*, bool> ForgetInListPlayersContainer;
+    bool isClassJoining(uint8 _class, Player* player, uint32 minLevel);
 
-    FakePlayersContainer _fakePlayerStore;
-    FakeNamePlayersContainer _fakeNamePlayersStore;
-    ForgetBGPlayersContainer _forgetBGPlayersStore;
-    ForgetInListPlayersContainer _forgetInListPlayersStore;
+    RandomSkinInfo GetRandomRaceMorph(TeamId team, uint8 playerClass, uint8 gender);
+
+    uint32 GetMorphFromRace(uint8 race, uint8 gender);
+    FakePlayer const* GetFakePlayer(Player* player) const;
+
+    void FillSameCountGroups(SameCountGroupsList& container, GroupsList& groups, BattlegroundQueue* bgQueue);
+    void InviteSameCountGroups(SameCountGroupsList& sameCountGroups, GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
+    TeamId InviteGroupToBG(GroupQueueInfo* gInfo, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
+
+    std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
+    std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
+    std::unordered_map<Player*, bool> _forgetBGPlayersStore;
+    std::unordered_map<Player*, bool> _forgetInListPlayersStore;
     std::unordered_map<GroupQueueInfo*, CrossFactionGroupInfo> _groupsInfo;
+
+    std::array<RaceData, 12> _raceData{};
+    std::array<CFBGRaceInfo, 9> _raceInfo{};
 
     // For config
     bool _IsEnableSystem;
@@ -239,14 +203,13 @@ private:
     uint8 _balanceClassMaxLevel;
     uint8 _balanceClassLevelDiff;
 
-    bool isClassJoining(uint8 _class, Player* player, uint32 minLevel);
+    CFBG();
+    ~CFBG() = default;
 
-    void RandomRaceMorph(uint8* race, uint32* morph, TeamId team, uint8 _class, uint8 gender);
-
-    uint8 GetRandomRace(std::initializer_list<uint32> races);
-    uint32 GetMorphFromRace(uint8 race, uint8 gender);
-    TeamId getTeamWithLowerClass(Battleground *bg, Classes c);
-    uint8 getBalanceClassMinLevel(const Battleground *bg) const;
+    CFBG(CFBG const&) = delete;
+    CFBG(CFBG&&) = delete;
+    CFBG& operator=(CFBG const&) = delete;
+    CFBG& operator=(CFBG&&) = delete;
 };
 
 #define sCFBG CFBG::instance()
