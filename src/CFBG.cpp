@@ -602,41 +602,50 @@ bool CFBG::IsPlayingNative(Player* player)
 
 bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
 {
+    if (!IsEnableSystem())
+        return false;
+
     queue->m_SelectionPools[TEAM_ALLIANCE].Init();
     queue->m_SelectionPools[TEAM_HORDE].Init();
 
     GroupsList groups{ queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin(), queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() };
 
-    auto CanStartBG = [queue, minPlayers]()
+    if (IsEnableEvenTeams())
     {
-        // If we're in BG testing one player is enough
-        if (sBattlegroundMgr->isTesting() && queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() + queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() > 0)
-            return true;
+        // Sort for check same count groups
+        std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
 
-        // Return when we're ready to start a BG, if we're in startup process
-        if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers &&
-            queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers)
-            return true;
-
-        // Return false when we didn't manage to fill the BattleGround in Filling "mode".
-        // reset selectionpool for further attempts
-        queue->m_SelectionPools[TEAM_ALLIANCE].Init();
-        queue->m_SelectionPools[TEAM_HORDE].Init();
-        return false;
-    };
-
-    // Sort for check same count groups
-    std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
-
-    SameCountGroupsList sameCountGroups;
-
-    if (groups.size() > 1)
+        InviteSameCountGroups(groups, queue, maxPlayers, maxPlayers);
+    }
+    else
     {
-        FillSameCountGroups(sameCountGroups, groups, queue);
-        InviteSameCountGroups(sameCountGroups, groups, queue, maxPlayers, maxPlayers);
+        // Default sort
+        std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->JoinTime > b->JoinTime; });
+
+        for (auto const& gInfo : groups)
+        {
+            if (gInfo->IsInvitedToBGInstanceGUID)
+                continue;
+
+            auto queueInfo = CrossFactionQueueInfo{ queue };
+            auto targetTeam = queueInfo.GetLowerTeamIdInBG(gInfo);
+            gInfo->teamId = targetTeam;
+
+            if (!queue->m_SelectionPools[targetTeam].AddGroup(gInfo, maxPlayers))
+                break;
+        }
     }
 
-    return CanStartBG();
+    // Return when we're ready to start a BG, if we're in startup process
+    if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers &&
+        queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount() >= minPlayers)
+        return true;
+
+    // Return false when we didn't manage to fill the BattleGround in Filling "mode".
+    // reset selectionpool for further attempts
+    queue->m_SelectionPools[TEAM_ALLIANCE].Init();
+    queue->m_SelectionPools[TEAM_HORDE].Init();
+    return true;
 }
 
 bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, BattlegroundBracketId bracket_id)
@@ -653,82 +662,83 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, Battl
     std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() < b->Players.size(); });
 
     std::array<std::size_t, 2> playersInvitedToBGCount{};
-    std::vector<std::pair<GroupQueueInfo*, GroupQueueInfo*>> sameGroups;
 
-    // Check groups with equal players
-    for (auto itr = groups.begin(); itr != groups.end();)
+    if (IsEnableEvenTeams())
     {
-        if ((*itr)->IsInvitedToBGInstanceGUID)
-        {
-            itr++;
-            continue;
-        }
+        std::vector<std::pair<GroupQueueInfo*, GroupQueueInfo*>> sameGroups;
 
-        auto nextItr{ itr + 1 };
-        if (nextItr != groups.end())
+        // Check groups with equal players
+        for (auto itr = groups.begin(); itr != groups.end();)
         {
-            if ((*nextItr)->IsInvitedToBGInstanceGUID || (*itr)->Players.size() != (*nextItr)->Players.size())
+            if ((*itr)->IsInvitedToBGInstanceGUID)
             {
                 itr++;
                 continue;
             }
 
-            sameGroups.emplace_back(*itr, *nextItr);
-            itr = itr + 2;
+            auto nextItr{ itr + 1 };
+            if (nextItr != groups.end())
+            {
+                if ((*nextItr)->IsInvitedToBGInstanceGUID || (*itr)->Players.size() != (*nextItr)->Players.size())
+                {
+                    itr++;
+                    continue;
+                }
 
-            if (itr == groups.end())
-                break;
-            else
-                continue;
+                sameGroups.emplace_back(*itr, *nextItr);
+                itr = itr + 2;
+
+                if (itr == groups.end())
+                    break;
+                else
+                    continue;
+            }
+
+            itr++;
         }
 
-        itr++;
-    }
-
-    if (!sameGroups.empty())
-    {
-        auto InviteGroupToBG = [this, bg, bgqueue, maxAli, maxHorde](GroupQueueInfo* gInfo)
+        if (!sameGroups.empty())
         {
-            TeamId targetTeam = GetLowerTeamIdInBG(bg, bgqueue, gInfo);
-            gInfo->teamId = targetTeam;
-
-            if (bgqueue->m_SelectionPools[targetTeam].AddGroup(gInfo, targetTeam == TEAM_ALLIANCE ? maxAli : maxHorde))
-                return targetTeam;
-
-            return TEAM_NEUTRAL;
-        };
-
-        for (auto& [group1, group2] : sameGroups)
-        {
-            auto team1{ InviteGroupToBG(group1) };
-            auto team2{ InviteGroupToBG(group2) };
-
-            if (team1 != TEAM_NEUTRAL && team2 != TEAM_NEUTRAL)
+            auto InviteGroupToBG = [this, bg, bgqueue, maxAli, maxHorde](GroupQueueInfo* gInfo)
             {
-                std::erase(groups, group1);
-                std::erase(groups, group2);
-                playersInvitedToBGCount.at(team1) += group1->Players.size();
-                playersInvitedToBGCount.at(team2) += group2->Players.size();
+                TeamId targetTeam = GetLowerTeamIdInBG(bg, bgqueue, gInfo);
+                gInfo->teamId = targetTeam;
+
+                if (bgqueue->m_SelectionPools[targetTeam].AddGroup(gInfo, targetTeam == TEAM_ALLIANCE ? maxAli : maxHorde))
+                    return targetTeam;
+
+                return TEAM_NEUTRAL;
+            };
+
+            for (auto& [group1, group2] : sameGroups)
+            {
+                auto team1{ InviteGroupToBG(group1) };
+                auto team2{ InviteGroupToBG(group2) };
+
+                if (team1 != TEAM_NEUTRAL && team2 != TEAM_NEUTRAL)
+                {
+                    std::erase(groups, group1);
+                    std::erase(groups, group2);
+                    playersInvitedToBGCount.at(team1) += group1->Players.size();
+                    playersInvitedToBGCount.at(team2) += group2->Players.size();
+                }
             }
         }
-    }
 
-    if (groups.empty())
-        return true; // we invited all players, done
+        if (groups.empty())
+            return true; // we invited all players, done
+    }
 
     // Sort with join time (default)
     std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->JoinTime < b->JoinTime; });
 
-    SameCountGroupsList sameCountGroups;
-
-    if (groups.size() > 1)
+    if (IsEnableEvenTeams())
     {
-        FillSameCountGroups(sameCountGroups, groups, bgqueue);
-        InviteSameCountGroups(sameCountGroups, groups, bgqueue, maxAli, maxHorde, bg);
-    }
+        InviteSameCountGroups(groups, bgqueue, maxAli, maxHorde, bg);
 
-    if (groups.empty())
-        return true; // we invited all players, done
+        if (groups.empty())
+            return true; // we invited all players, done
+    }
 
     // Check invited players to bg
     for (auto const& gInfo : bgqueue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG])
@@ -955,15 +965,14 @@ bool CFBG::IsRaceValidForFaction(uint8 teamId, uint8 race)
     return false;
 }
 
-void CFBG::FillSameCountGroups(SameCountGroupsList& container, GroupsList& groups, BattlegroundQueue* bgQueue)
+void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg /*= nullptr*/)
 {
-    if (groups.empty() || !bgQueue)
+    if (groups.size() < 2 || !bgQueue)
         return;
 
     GroupsList groupList;
     GroupsList addedGroups;
-
-    container.clear();
+    SameCountGroupsList container;
 
     for (auto const& targetGroup : groups)
     {
@@ -1004,19 +1013,13 @@ void CFBG::FillSameCountGroups(SameCountGroupsList& container, GroupsList& group
             }
         }
     }
-}
 
-void CFBG::InviteSameCountGroups(SameCountGroupsList& sameCountGroups, GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg /*= nullptr*/)
-{
-    if (sameCountGroups.empty())
+    if (container.empty())
         return;
 
-    for (auto& [groupTarget, groupListForTarger] : sameCountGroups)
+    for (auto& [groupTarget, groupListForTarger] : container)
     {
         auto teamTarget{ InviteGroupToBG(groupTarget, bgQueue, maxAli, maxHorde, bg) };
-        if (teamTarget == TEAM_NEUTRAL)
-            continue;
-
         bool IsAllInvited{ true };
 
         for (auto const& groupItr : groupListForTarger)

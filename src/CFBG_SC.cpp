@@ -71,21 +71,14 @@ public:
         {
             index = BG_QUEUE_CFBG;
         }
+
+        // After rework hook
+        // sCFBG->OnAddGroupToBGQueue(ginfo, group);
     }
 
     bool CanFillPlayersToBG(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id) override
     {
-        if (!sCFBG->IsEnableSystem() || bg->isArena())
-        {
-            return true;
-        }
-
-        if (sCFBG->FillPlayersToCFBG(queue, bg, bracket_id))
-        {
-            return false;
-        }
-
-        return true;
+        return !sCFBG->FillPlayersToCFBG(queue, bg, bracket_id);
     }
 
     bool IsCheckNormalMatch(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers) override
