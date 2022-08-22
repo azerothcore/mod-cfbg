@@ -17,8 +17,9 @@
 class Player;
 class Battleground;
 class BattlegroundQueue;
-class GroupQueueInfo;
+class Group;
 
+struct GroupQueueInfo;
 struct PvPDifficultyEntry;
 
 enum FakeMorphs
