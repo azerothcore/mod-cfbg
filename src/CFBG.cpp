@@ -610,14 +610,14 @@ bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketI
 
     GroupsList groups{ queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin(), queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() };
 
-    //if (IsEnableEvenTeams())
-    //{
-    //    // Sort for check same count groups
-    //    std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
+    if (IsEnableEvenTeams())
+    {
+        // Sort for check same count groups
+        std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
 
-    //    InviteSameCountGroups(groups, queue, maxPlayers, maxPlayers);
-    //}
-    //else
+        InviteSameCountGroups(groups, queue, maxPlayers, maxPlayers);
+    }
+    else
     {
         // Default sort
         std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->JoinTime > b->JoinTime; });
@@ -979,6 +979,9 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
         if (targetGroup->IsInvitedToBGInstanceGUID)
             continue;
 
+        if (std::find(addedGroups.begin(), addedGroups.end(), targetGroup) != addedGroups.end())
+            continue;
+
         groupList.clear();
         auto groupSizeNeed{ targetGroup->Players.size() };
 
@@ -987,10 +990,10 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
             if (itrGroup == targetGroup)
                 continue;
 
-            if (std::find(addedGroups.begin(), addedGroups.end(), itrGroup) != addedGroups.end())
+            if (itrGroup->IsInvitedToBGInstanceGUID)
                 continue;
 
-            if (itrGroup->IsInvitedToBGInstanceGUID)
+            if (std::find(addedGroups.begin(), addedGroups.end(), itrGroup) != addedGroups.end())
                 continue;
 
             auto groupSizeItr{ itrGroup->Players.size() };
@@ -1020,6 +1023,9 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
     for (auto& [groupTarget, groupListForTarger] : container)
     {
         auto teamTarget{ InviteGroupToBG(groupTarget, bgQueue, maxAli, maxHorde, bg) };
+        if (teamTarget == TEAM_NEUTRAL)
+            continue;
+
         bool IsAllInvited{ true };
 
         for (auto const& groupItr : groupListForTarger)
