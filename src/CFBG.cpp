@@ -1047,7 +1047,7 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
         if (!IsAllInvited)
         {
             for (auto const& groupItr : groupListForTarger)
-                DeleteGroup(groupTarget);
+                DeleteGroup(groupItr);
 
             DeleteGroup(groupTarget);
             continue;
