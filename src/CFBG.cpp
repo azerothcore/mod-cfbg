@@ -1020,6 +1020,12 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
     if (container.empty())
         return;
 
+    auto DeleteGroup = [bgQueue](GroupQueueInfo* gInfo)
+    {
+        std::erase(bgQueue->m_SelectionPools[TEAM_ALLIANCE].SelectedGroups, gInfo);
+        std::erase(bgQueue->m_SelectionPools[TEAM_HORDE].SelectedGroups, gInfo);
+    };
+
     for (auto& [groupTarget, groupListForTarger] : container)
     {
         auto teamTarget{ InviteGroupToBG(groupTarget, bgQueue, maxAli, maxHorde, bg) };
@@ -1039,12 +1045,18 @@ void CFBG::InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue,
         }
 
         if (!IsAllInvited)
-            continue;
+        {
+            for (auto const& groupItr : groupListForTarger)
+                DeleteGroup(groupTarget);
 
-        std::erase(groups, groupTarget);
+            DeleteGroup(groupTarget);
+            continue;
+        }
 
         for (auto const& groupItr : groupListForTarger)
             std::erase(groups, groupItr);
+
+        std::erase(groups, groupTarget);
     }
 }
 
