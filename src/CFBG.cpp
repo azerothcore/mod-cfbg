@@ -610,14 +610,14 @@ bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketI
 
     GroupsList groups{ queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].begin(), queue->m_QueuedGroups[bracket_id][BG_QUEUE_CFBG].end() };
 
-    if (IsEnableEvenTeams())
-    {
-        // Sort for check same count groups
-        std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
+    //if (IsEnableEvenTeams())
+    //{
+    //    // Sort for check same count groups
+    //    std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->Players.size() > b->Players.size(); });
 
-        InviteSameCountGroups(groups, queue, maxPlayers, maxPlayers);
-    }
-    else
+    //    InviteSameCountGroups(groups, queue, maxPlayers, maxPlayers);
+    //}
+    //else
     {
         // Default sort
         std::sort(groups.begin(), groups.end(), [](GroupQueueInfo const* a, GroupQueueInfo const* b) { return a->JoinTime > b->JoinTime; });
