@@ -451,7 +451,7 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
         skinInfo.first,
         skinInfo.second,
         player->TeamIdForRace(skinInfo.first),
-        player->getRace(true),
+        player->getRace(),
         player->GetDisplayId(),
         player->GetNativeDisplayId(),
         player->GetTeamId(true)
@@ -586,7 +586,7 @@ bool CFBG::SendRealNameQuery(Player* player)
     data << uint8(0);                                           // added in 3.1; if > 1, then end of packet
     data << player->GetName();                                  // played name
     data << uint8(0);                                           // realm name for cross realm BG usage
-    data << uint8(player->getRace(true));
+    data << uint8(player->getRace());
     data << uint8(player->getGender());
     data << uint8(player->getClass());
     data << uint8(0);                                           // is not declined
