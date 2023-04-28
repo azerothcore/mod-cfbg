@@ -363,7 +363,7 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player)
 
     TeamId teamId{ player->GetBgTeamId() };
 
-    if (player->GetTeamId(true) == teamId)
+    if (player->GetTeamId() == teamId)
         return;
 
     BGData& bgdata = player->GetBGData();
@@ -432,15 +432,15 @@ CFBG::RandomSkinInfo CFBG::GetRandomRaceMorph(TeamId team, uint8 playerClass, ui
 
 void CFBG::SetFakeRaceAndMorph(Player* player)
 {
-    if (!player->InBattleground() || player->GetTeamId(true) == player->GetBgTeamId() || IsPlayerFake(player))
+    if (!player->InBattleground() || player->GetTeamId() == player->GetBgTeamId() || IsPlayerFake(player))
         return;
 
     // generate random race and morph
-    RandomSkinInfo skinInfo{ GetRandomRaceMorph(player->GetTeamId(true), player->getClass(), player->getGender()) };
+    RandomSkinInfo skinInfo{ GetRandomRaceMorph(player->GetTeamId(), player->getClass(), player->getGender()) };
 
     uint8 selectedRace = player->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
 
-    if (!RandomizeRaces() && selectedRace && IsRaceValidForFaction(player->GetTeamId(true), selectedRace))
+    if (!RandomizeRaces() && selectedRace && IsRaceValidForFaction(player->GetTeamId(), selectedRace))
     {
         skinInfo.first = selectedRace;
         skinInfo.second = GetMorphFromRace(skinInfo.first, player->getGender());
@@ -597,7 +597,7 @@ bool CFBG::SendRealNameQuery(Player* player)
 
 bool CFBG::IsPlayingNative(Player* player)
 {
-    return player->GetTeamId(true) == player->GetBGData().bgTeamId;
+    return player->GetTeamId() == player->GetBGData().bgTeamId;
 }
 
 bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
