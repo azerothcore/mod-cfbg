@@ -12,29 +12,9 @@ But, all mechanics of change of fraction and so on is remade. Faction change occ
 #### Features:
 - Change you faction in bg for balance faction.
 
-#### Config option (CFBG.conf.dist)
-```ini
-###################################################################################################
-#   CrossFaction BattleGround
-#   
-#   CFBG.Enable
-#       Description: Enable mixed alliance and horde in one battleground 
-#       Default: 1
-#
-#   CFBG.Include.Avg.Ilvl.Enable
-#       Description: Enable check average item level for bg
-#       Default: 1
-#
-
-CFBG.Enable = 1
-CFBG.Include.Avg.Ilvl.Enable = 1
-CFBG.Players.Count.In.Group = 3
-```
-
 ### How to install
 1. Simply place the module under the `modules` folder of your AzerothCore source folder.
 2. Re-run cmake and launch a clean build of AzerothCore
-3. Make sure your `Battleground.InvitationType` is set to `0` in `worldserver.conf`
 4. Done :)
 
 ### Edit module configuration (optional)
