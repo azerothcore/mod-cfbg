@@ -925,7 +925,7 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
 
             if (_showPlayerName)
             {
-                std::string msg = Acore::StringFormatFmt("{} |cffffffffHas Joined|r |cffff0000{}|r|cffffffff(|r|cff00ffff{}|r|cffffffff/|r|cff00ffff{}|r|cffffffff)|r",
+                std::string msg = Acore::StringFormat("{} |cffffffffHas Joined|r |cffff0000{}|r|cffffffff(|r|cff00ffff{}|r|cffffffff/|r|cff00ffff{}|r|cffffffff)|r",
                     leader->GetPlayerName(), bg->GetName(), qTotal, MinPlayers);
 
                 for (auto const& session : sWorld->GetAllSessions())
