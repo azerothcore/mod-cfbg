@@ -6,6 +6,7 @@
 
 #include "CFBG.h"
 #include "BattlegroundMgr.h"
+#include "BattlegroundUtils.h"
 #include "Chat.h"
 #include "Config.h"
 #include "Containers.h"
@@ -879,7 +880,7 @@ void CFBG::SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDif
     auto bgName = bg->GetName();
     uint32 q_min_level = std::min(bracketEntry->minLevel, (uint32)80);
     uint32 q_max_level = std::min(bracketEntry->maxLevel, (uint32)80);
-    uint32 MinPlayers = bg->GetMinPlayersPerTeam() * 2;
+    uint32 MinPlayers = GetMinPlayersPerTeam(bg, bracketEntry) * 2;
     uint32 qTotal = bgQueue->GetPlayersCountInGroupsQueue(bracketId, (BattlegroundQueueGroupTypes)BG_QUEUE_CFBG);
 
     if (sWorld->getBoolConfig(CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_PLAYERONLY))
