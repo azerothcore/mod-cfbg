@@ -117,7 +117,7 @@ public:
             return;
         }
 
-        if (player->GetTeamId(true) != player->GetBgTeamId())
+        if (player->GetTeamId() != player->GetBgTeamId())
         {
             sCFBG->FitPlayerInTeam(player, player->GetBattleground() && !player->GetBattleground()->isArena(), player->GetBattleground());
         }
@@ -179,7 +179,7 @@ public:
     bool OnReputationChange(Player* player, uint32 factionID, int32& standing, bool /*incremental*/) override
     {
         uint32 repGain = player->GetReputation(factionID);
-        TeamId teamId = player->GetTeamId(true);
+        TeamId teamId = player->GetTeamId();
 
         if ((factionID == FACTION_FROSTWOLF_CLAN && teamId == TEAM_ALLIANCE) ||
             (factionID == FACTION_STORMPIKE_GUARD && teamId == TEAM_HORDE))
