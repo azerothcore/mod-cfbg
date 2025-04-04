@@ -90,7 +90,7 @@ public:
         }
         else
         {
-            handler->PSendSysMessage("CFBG selected race set to %s", raceInput);
+            handler->PSendSysMessage("CFBG selected race set to {}", raceInput);
         }
 
         return true;
