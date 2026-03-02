@@ -181,6 +181,7 @@ void CFBG::LoadConfig()
     if (!_IsEnableSystem)
         return;
 
+    _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
@@ -467,10 +468,48 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
     _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
 }
 
+void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
+{
+    if (!player || IsPlayerFake(player))
+        return;
+
+    TeamId realTeam = player->GetTeamId(true);
+    if (realTeam == assignedTeam)
+        return;
+
+    // Generate a race/morph from the assigned team's faction (opposite of real faction)
+    RandomSkinInfo skinInfo{ GetRandomRaceMorph(realTeam, player->getClass(), player->getGender()) };
+
+    uint8 selectedRace = player->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
+
+    if (!RandomizeRaces() && selectedRace && IsRaceValidForFaction(realTeam, selectedRace))
+    {
+        skinInfo.first = selectedRace;
+        skinInfo.second = GetMorphFromRace(skinInfo.first, player->getGender());
+    }
+
+    FakePlayer fakePlayerInfo
+    {
+        skinInfo.first,
+        skinInfo.second,
+        assignedTeam,
+        player->getRace(true),
+        player->GetDisplayId(),
+        player->GetNativeDisplayId(),
+        realTeam
+    };
+
+    player->setRace(fakePlayerInfo.FakeRace);
+    SetFactionForRace(player, fakePlayerInfo.FakeRace);
+    player->SetDisplayId(fakePlayerInfo.FakeMorph);
+    player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
+
+    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+}
+
 void CFBG::SetFactionForRace(Player* player, uint8 Race)
 {
     player->setTeamId(player->TeamIdForRace(Race));
-
     ChrRacesEntry const* DBCRace = sChrRacesStore.LookupEntry(Race);
     player->SetFaction(DBCRace ? DBCRace->FactionID : 0);
 }
