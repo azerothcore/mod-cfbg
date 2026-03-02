@@ -150,6 +150,8 @@ public:
     void ValidatePlayerForBG(Battleground* bg, Player* player);
     void SetFakeRaceAndMorph(Player* player);
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
+    void PrepareFakeTeamForBF(Player* player, TeamId assignedTeam);
+    void ApplyFakeVisualsForBF(Player* player);
     void SetFactionForRace(Player* player, uint8 Race);
     void ClearFakePlayer(Player* player);
     void DoForgetPlayersInList(Player* player);

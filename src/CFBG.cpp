@@ -507,6 +507,60 @@ void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
     _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
 }
 
+void CFBG::PrepareFakeTeamForBF(Player* player, TeamId assignedTeam)
+{
+    if (!player || IsPlayerFake(player))
+        return;
+
+    TeamId realTeam = player->GetTeamId(true);
+    if (realTeam == assignedTeam)
+        return;
+
+    // Generate race/morph so the full FakePlayer record is ready for when
+    // ApplyFakeVisualsForBF fires later (on war accept).  We do NOT call
+    // setRace / SetDisplayId / SetNativeDisplayId here — only the faction
+    // (team) is changed so that every subsequent core bucket write uses the
+    // assigned team.
+    RandomSkinInfo skinInfo{ GetRandomRaceMorph(realTeam, player->getClass(), player->getGender()) };
+
+    uint8 selectedRace = player->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
+
+    if (!RandomizeRaces() && selectedRace && IsRaceValidForFaction(realTeam, selectedRace))
+    {
+        skinInfo.first = selectedRace;
+        skinInfo.second = GetMorphFromRace(skinInfo.first, player->getGender());
+    }
+
+    FakePlayer fakePlayerInfo
+    {
+        skinInfo.first,
+        skinInfo.second,
+        assignedTeam,
+        player->getRace(true),
+        player->GetDisplayId(),
+        player->GetNativeDisplayId(),
+        realTeam
+    };
+
+    // Team change only — visuals are deferred to ApplyFakeVisualsForBF.
+    SetFactionForRace(player, fakePlayerInfo.FakeRace);
+
+    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+}
+
+void CFBG::ApplyFakeVisualsForBF(Player* player)
+{
+    FakePlayer const* fakeInfo = GetFakePlayer(player);
+    if (!fakeInfo)
+        return;
+
+    // Visual changes deferred from PrepareFakeTeamForBF: apply them now that
+    // the player has actually accepted the war invitation.
+    player->setRace(fakeInfo->FakeRace);
+    player->SetDisplayId(fakeInfo->FakeMorph);
+    player->SetNativeDisplayId(fakeInfo->FakeMorph);
+}
+
 void CFBG::SetFactionForRace(Player* player, uint8 Race)
 {
     player->setTeamId(player->TeamIdForRace(Race));
