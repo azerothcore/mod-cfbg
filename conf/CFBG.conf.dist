@@ -16,6 +16,13 @@
 #       Description: Enable mixed alliance and horde in one battleground
 #       Default: 1
 #
+#   CFBG.Battlefield.Enable
+#       Description: Enable cross-faction queue for Wintergrasp battlefield.
+#                    Requires CFBG.Enable = 1. Players are assigned to the team
+#                    with fewer members, applying a visual race/faction change
+#                    for the duration of their stay in the zone.
+#       Default: 1
+#
 #   CFBG.Include.Avg.Ilvl.Enable
 #       Description: Enable check average item level for bg
 #       Default: 0
@@ -63,6 +70,7 @@
 #                0 - Player choice
 
 CFBG.Enable = 1
+CFBG.Battlefield.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10

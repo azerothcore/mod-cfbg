@@ -3,6 +3,8 @@
  * Licence MIT https://opensource.org/MIT
  */
 
+#include "Battlefield.h"
+#include "BattlefieldMgr.h"
 #include "Chat.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -118,4 +120,56 @@ public:
 void AddSC_cfbg_commandscript()
 {
     new cfbg_commandscript();
+}
+
+class cfbg_bf_commandscript : public CommandScript
+{
+public:
+    cfbg_bf_commandscript() : CommandScript("cfbg_bf_commandscript") { }
+
+    ChatCommandTable GetCommands() const override
+    {
+        static ChatCommandTable bfSubCommands =
+        {
+            { "list", HandleBFList, SEC_ADMINISTRATOR, Console::No },
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "bf", bfSubCommands },
+        };
+
+        return commandTable;
+    }
+
+    static bool HandleBFList(ChatHandler* handler, uint32 battleId)
+    {
+        Battlefield* bf = sBattlefieldMgr->GetBattlefieldByBattleId(battleId);
+
+        if (!bf)
+        {
+            handler->SendErrorMessage("Battlefield {} not found.", battleId);
+            return false;
+        }
+
+        uint32 const allianceZone = bf->GetPlayersInZoneCount(TEAM_ALLIANCE);
+        uint32 const hordeZone    = bf->GetPlayersInZoneCount(TEAM_HORDE);
+        uint32 const allianceWar  = bf->GetPlayersInWarCount(TEAM_ALLIANCE);
+        uint32 const hordeWar     = bf->GetPlayersInWarCount(TEAM_HORDE);
+        uint32 const maxPerTeam   = bf->GetMaxPlayersPerTeam();
+
+        handler->SendSysMessage(Acore::StringFormat("Battlefield {} | {}", battleId,
+            bf->IsWarTime() ? "WAR" : "PEACE").c_str());
+        handler->SendSysMessage(Acore::StringFormat("  Alliance: {} in zone, {} in war / {} max",
+            allianceZone, allianceWar, maxPerTeam).c_str());
+        handler->SendSysMessage(Acore::StringFormat("  Horde:    {} in zone, {} in war / {} max",
+            hordeZone, hordeWar, maxPerTeam).c_str());
+
+        return true;
+    }
+};
+
+void AddSC_cfbg_bf_commandscript()
+{
+    new cfbg_bf_commandscript();
 }

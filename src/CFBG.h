@@ -15,6 +15,7 @@
 #include <vector>
 
 class Player;
+class Battlefield;
 class Battleground;
 class BattlegroundQueue;
 class Group;
@@ -119,6 +120,7 @@ public:
     void LoadConfig();
 
     inline bool IsEnableSystem() const { return _IsEnableSystem; }
+    inline bool IsEnableWGSystem() const { return _IsEnableWGSystem; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
@@ -147,6 +149,7 @@ public:
 
     void ValidatePlayerForBG(Battleground* bg, Player* player);
     void SetFakeRaceAndMorph(Player* player);
+    void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race);
     void ClearFakePlayer(Player* player);
     void DoForgetPlayersInList(Player* player);
@@ -192,6 +195,7 @@ private:
 
     // For config
     bool _IsEnableSystem;
+    bool _IsEnableWGSystem;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
     bool _IsEnableBalanceClassLowLevel;
