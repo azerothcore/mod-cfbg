@@ -105,6 +105,7 @@ class CFBG_Player : public PlayerScript
 public:
     CFBG_Player() : PlayerScript("CFBG_Player", {
         PLAYERHOOK_ON_LOGIN,
+        PLAYERHOOK_ON_LOGOUT,
         PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE,
         PLAYERHOOK_ON_BEFORE_UPDATE,
         PLAYERHOOK_ON_BEFORE_SEND_CHAT_MESSAGE,
