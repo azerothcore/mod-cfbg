@@ -213,14 +213,12 @@ class CFBG_Battlefield : public BattlefieldScript
 {
 public:
     CFBG_Battlefield() : BattlefieldScript("CFBG_Battlefield", {
-        BATTLEFIELDHOOK_ON_PLAYER_ENTER_ZONE,
-        BATTLEFIELDHOOK_BEFORE_INVITE_PLAYER_TO_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_JOIN_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_LEAVE_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_LEAVE_ZONE
     }) {}
 
-    void OnBattlefieldPlayerEnterZone(Battlefield* bf, Player* player) override
+    void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
     {
         if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
             return;
@@ -228,22 +226,9 @@ public:
         if (bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
-        // Only assign during active war.  Pre-war players keep their real
-        // appearance until they accept a war invitation (handled in JoinWar).
-        if (!bf->IsWarTime())
-            return;
-
-        // Already assigned (handles the odd edge case where IsPlayerFake is
-        // still true for a reconnecting player on the same pointer).
         if (sCFBG->IsPlayerFake(player))
             return;
 
-        // This hook fires BEFORE any Battlefield bucket (m_players, m_InvitedPlayers)
-        // is updated, so changing the team here means every subsequent core operation
-        // uses the assigned team - no stale entries are left behind on leave.
-        //
-        // Use the module's own tracking, not GetPlayersInWarCount(), so the
-        // balance decision is always based on clean, module-maintained state.
         uint32 allianceCount = static_cast<uint32>(_wgWarPlayers[TEAM_ALLIANCE].size());
         uint32 hordeCount    = static_cast<uint32>(_wgWarPlayers[TEAM_HORDE].size());
 
@@ -256,67 +241,9 @@ public:
             assignedTeam = TEAM_ALLIANCE;
 
         if (assignedTeam != realTeam)
-            sCFBG->PrepareFakeTeamForBF(player, assignedTeam);
+            sCFBG->SetFakeRaceAndMorphForBF(player, assignedTeam);
 
-        // The player is NOT added to wgWarPlayers here; they are only added
-        // once they actually accept the war invitation (OnBattlefieldPlayerJoinWar).
-    }
-
-    void OnBattlefieldBeforeInvitePlayerToWar(Battlefield* bf, Player* player) override
-    {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
-            return;
-
-        if (bf->GetTypeId() != BATTLEFIELD_WG)
-            return;
-
-        // Players who entered the zone while war was already active are already
-        // assigned in OnBattlefieldPlayerEnterZone; nothing more to do here.
-        if (sCFBG->IsPlayerFake(player))
-            return;
-
-        // Fallback for players who were in the zone before war started.  This
-        // hook fires after m_PlayersWillBeKick has been erased using the real
-        // team (correct), and before m_InvitedPlayers is written.  Assigning
-        // the team here means the invite lands in the right bucket immediately,
-        // so PlayerAcceptInviteToWar sees a consistent team throughout.
-        //
-        // GetPlayersInWarCount is safe to use here: m_PlayersInWar was cleared
-        // at StartBattle and m_InvitedPlayers is being built up in this same
-        // loop, so there is no stale state to read.
-        uint32 allianceCount = bf->GetPlayersInWarCount(TEAM_ALLIANCE);
-        uint32 hordeCount    = bf->GetPlayersInWarCount(TEAM_HORDE);
-
-        TeamId realTeam     = player->GetTeamId(true);
-        TeamId assignedTeam = realTeam;
-
-        if (realTeam == TEAM_ALLIANCE && allianceCount > hordeCount)
-            assignedTeam = TEAM_HORDE;
-        else if (realTeam == TEAM_HORDE && hordeCount > allianceCount)
-            assignedTeam = TEAM_ALLIANCE;
-
-        if (assignedTeam != realTeam)
-            sCFBG->PrepareFakeTeamForBF(player, assignedTeam);
-    }
-
-    void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
-    {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
-            return;
-
-        if (bf->GetTypeId() != BATTLEFIELD_WG)
-            return;
-
-        // By this point the player's team is already final: either assigned in
-        // OnBattlefieldPlayerEnterZone (zone entry during war) or in
-        // OnBattlefieldBeforeInvitePlayerToWar (pre-war zone players at invite
-        // time).  Record them in the module's war tracking, then apply the
-        // visual transformation now that they have actually accepted.
         _wgWarPlayers[player->GetTeamId()].insert(player->GetGUID());
-
-        // Apply race/morph visuals deferred from the pre-invite phase.
-        // For players whose team was not reassigned this is a no-op.
-        sCFBG->ApplyFakeVisualsForBF(player);
     }
 
     void OnBattlefieldPlayerLeaveWar(Battlefield* bf, Player* player) override
