@@ -256,7 +256,15 @@ public:
             assignedTeam = TEAM_ALLIANCE;
 
         if (assignedTeam != realTeam)
+        {
             sCFBG->PrepareFakeTeamForBF(player, assignedTeam);
+
+            // The player may have been queued or invited under their original
+            // team before entering the zone.  Now that the effective team has
+            // changed, move those entries so the core finds them under the
+            // correct bucket for all subsequent operations.
+            bf->MigratePlayerContainers(player->GetGUID(), realTeam, assignedTeam);
+        }
 
         // The player is NOT added to wgWarPlayers here; they are only added
         // once they actually accept the war invitation (OnBattlefieldPlayerJoinWar).
@@ -296,7 +304,10 @@ public:
             assignedTeam = TEAM_ALLIANCE;
 
         if (assignedTeam != realTeam)
+        {
             sCFBG->PrepareFakeTeamForBF(player, assignedTeam);
+            bf->MigratePlayerContainers(player->GetGUID(), realTeam, assignedTeam);
+        }
     }
 
     void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
