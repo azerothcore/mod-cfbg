@@ -7,6 +7,7 @@
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
 #include "Group.h"
+#include "ObjectAccessor.h"
 #include "Player.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
@@ -215,7 +216,8 @@ public:
     CFBG_Battlefield() : BattlefieldScript("CFBG_Battlefield", {
         BATTLEFIELDHOOK_ON_PLAYER_JOIN_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_LEAVE_WAR,
-        BATTLEFIELDHOOK_ON_PLAYER_LEAVE_ZONE
+        BATTLEFIELDHOOK_ON_PLAYER_LEAVE_ZONE,
+        BATTLEFIELDHOOK_ON_WAR_END
     }) {}
 
     void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
@@ -278,6 +280,30 @@ public:
         // player's real race/faction.
         if (sCFBG->IsPlayerFake(player))
             sCFBG->ClearFakePlayer(player);
+    }
+
+    void OnBattlefieldWarEnd(Battlefield* bf, bool /*endByTimer*/) override
+    {
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+            return;
+
+        if (bf->GetTypeId() != BATTLEFIELD_WG)
+            return;
+
+        // When the war ends, the core clears PlayersInWar in bulk without
+        // firing per-player LeaveWar hooks.  Players staying in the WG zone
+        // never trigger LeaveZone either, so their fake faction would persist
+        // indefinitely.  Iterate our own tracking and restore each player now.
+        for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
+        {
+            for (ObjectGuid const& guid : _wgWarPlayers[team])
+            {
+                Player* player = ObjectAccessor::FindPlayer(guid);
+                if (player && sCFBG->IsPlayerFake(player))
+                    sCFBG->ClearFakePlayer(player);
+            }
+            _wgWarPlayers[team].clear();
+        }
     }
 
 private:
