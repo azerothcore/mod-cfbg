@@ -152,7 +152,7 @@ public:
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void PrepareFakeTeamForBF(Player* player, TeamId assignedTeam);
     void ApplyFakeVisualsForBF(Player* player);
-    void SetFactionForRace(Player* player, uint8 Race);
+    void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
     void ClearFakePlayer(Player* player);
     void DoForgetPlayersInList(Player* player);
     void FitPlayerInTeam(Player* player, bool action, Battleground* bg);

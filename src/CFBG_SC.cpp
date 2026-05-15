@@ -245,7 +245,7 @@ public:
         if (assignedTeam != realTeam)
             sCFBG->SetFakeRaceAndMorphForBF(player, assignedTeam);
 
-        _wgWarPlayers[player->GetTeamId()].insert(player->GetGUID());
+        _wgWarPlayers[assignedTeam].insert(player->GetGUID());
     }
 
     void OnBattlefieldPlayerLeaveWar(Battlefield* bf, Player* player) override
