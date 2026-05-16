@@ -461,7 +461,7 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
     };
 
     player->setRace(fakePlayerInfo.FakeRace);
-    SetFactionForRace(player, fakePlayerInfo.FakeRace);
+    SetFactionForRace(player, fakePlayerInfo.FakeRace, fakePlayerInfo.FakeTeamID);
     player->SetDisplayId(fakePlayerInfo.FakeMorph);
     player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
 
@@ -500,7 +500,7 @@ void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
     };
 
     player->setRace(fakePlayerInfo.FakeRace);
-    SetFactionForRace(player, fakePlayerInfo.FakeRace);
+    SetFactionForRace(player, fakePlayerInfo.FakeRace, assignedTeam);
     player->SetDisplayId(fakePlayerInfo.FakeMorph);
     player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
 
@@ -543,7 +543,7 @@ void CFBG::PrepareFakeTeamForBF(Player* player, TeamId assignedTeam)
     };
 
     // Team change only — visuals are deferred to ApplyFakeVisualsForBF.
-    SetFactionForRace(player, fakePlayerInfo.FakeRace);
+    SetFactionForRace(player, fakePlayerInfo.FakeRace, fakePlayerInfo.FakeTeamID);
 
     _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
 }
@@ -561,11 +561,21 @@ void CFBG::ApplyFakeVisualsForBF(Player* player)
     player->SetNativeDisplayId(fakeInfo->FakeMorph);
 }
 
-void CFBG::SetFactionForRace(Player* player, uint8 Race)
+void CFBG::SetFactionForRace(Player* player, uint8 Race, TeamId teamId)
 {
-    player->setTeamId(player->TeamIdForRace(Race));
+    if (!player)
+        return;
+
+    player->setTeamId(teamId);
+
     ChrRacesEntry const* DBCRace = sChrRacesStore.LookupEntry(Race);
     player->SetFaction(DBCRace ? DBCRace->FactionID : 0);
+
+    for (Unit* controlled : player->m_Controlled)
+    {
+        if (controlled)
+            controlled->SetFaction(player->GetFaction());
+    }
 }
 
 void CFBG::ClearFakePlayer(Player* player)
@@ -576,7 +586,7 @@ void CFBG::ClearFakePlayer(Player* player)
     player->setRace(_fakePlayerStore[player].RealRace);
     player->SetDisplayId(_fakePlayerStore[player].RealMorph);
     player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
-    SetFactionForRace(player, _fakePlayerStore[player].RealRace);
+    SetFactionForRace(player, _fakePlayerStore[player].RealRace, _fakePlayerStore[player].RealTeamID);
 
     // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
     player->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, false);
