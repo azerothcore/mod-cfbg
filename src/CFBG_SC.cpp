@@ -210,6 +210,11 @@ private:
     uint32 timeCheck = 10000;
 };
 
+// WG constants duplicated here to avoid pulling in BattlefieldWG.h
+static constexpr uint32 WG_SPELL_LIEUTENANT            = 55629;
+static constexpr uint32 WG_NPC_QUEST_PVP_KILL_ALLIANCE = 31086;
+static constexpr uint32 WG_NPC_QUEST_PVP_KILL_HORDE    = 39019;
+
 class CFBG_Battlefield : public BattlefieldScript
 {
 public:
@@ -217,7 +222,8 @@ public:
         BATTLEFIELDHOOK_ON_PLAYER_JOIN_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_LEAVE_WAR,
         BATTLEFIELDHOOK_ON_PLAYER_LEAVE_ZONE,
-        BATTLEFIELDHOOK_ON_WAR_END
+        BATTLEFIELDHOOK_ON_WAR_END,
+        BATTLEFIELDHOOK_ON_PLAYER_KILL
     }) {}
 
     void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
@@ -280,6 +286,32 @@ public:
         // player's real race/faction.
         if (sCFBG->IsPlayerFake(player))
             sCFBG->ClearFakePlayer(player);
+    }
+
+    void OnBattlefieldPlayerKill(Battlefield* bf, Player* killer, Player* victim) override
+    {
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+            return;
+
+        if (bf->GetTypeId() != BATTLEFIELD_WG)
+            return;
+
+        // The core already grants credit when the victim has SPELL_LIEUTENANT (55629).
+        // This hook covers the remaining kills so that quest credit is not gated on
+        // victim rank, which would silently fail in short or low-population sessions.
+        if (victim->HasAura(WG_SPELL_LIEUTENANT))
+            return;
+
+        TeamId killerTeam = killer->GetTeamId();
+        uint32 creditNpc  = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_ALLIANCE
+                                                        : WG_NPC_QUEST_PVP_KILL_HORDE;
+
+        for (ObjectGuid const& guid : bf->GetPlayersInWarSet(killerTeam))
+        {
+            Player* ally = ObjectAccessor::FindPlayer(guid);
+            if (ally && ally->GetDistance2d(killer) < 40.0f)
+                ally->KilledMonsterCredit(creditNpc);
+        }
     }
 
     void OnBattlefieldWarEnd(Battlefield* bf, bool /*endByTimer*/) override
