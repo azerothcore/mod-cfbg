@@ -296,21 +296,35 @@ public:
         if (bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
-        // The core already grants credit when the victim has SPELL_LIEUTENANT (55629).
-        // This hook covers the remaining kills so that quest credit is not gated on
-        // victim rank, which would silently fail in short or low-population sessions.
-        if (victim->HasAura(WG_SPELL_LIEUTENANT))
-            return;
-
+        // FFA quest credit: both PvP-kill credit NPCs are granted to every war
+        // player in range so that flipped players advance whichever quest they
+        // actually hold, regardless of the killer's assigned team. Granting a
+        // credit NPC for a quest the player does not have is a no-op.
+        //
+        // Core (BattlefieldWG.cpp) already grants `coreCredit` to killer-team
+        // players in range when the victim has SPELL_LIEUTENANT. We avoid
+        // double-crediting that case by giving coreCredit only to opposite-team
+        // players, and otherCredit to everyone.
         TeamId killerTeam = killer->GetTeamId();
-        uint32 creditNpc  = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_ALLIANCE
+        uint32 coreCredit  = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_ALLIANCE
                                                         : WG_NPC_QUEST_PVP_KILL_HORDE;
+        uint32 otherCredit = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_HORDE
+                                                        : WG_NPC_QUEST_PVP_KILL_ALLIANCE;
+        bool coreAlreadyGaveCredit = victim->HasAura(WG_SPELL_LIEUTENANT);
 
-        for (ObjectGuid const& guid : bf->GetPlayersInWarSet(killerTeam))
+        for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
         {
-            Player* ally = ObjectAccessor::FindPlayer(guid);
-            if (ally && ally->GetDistance2d(killer) < 40.0f)
-                ally->KilledMonsterCredit(creditNpc);
+            bool isKillerTeam = (TeamId(team) == killerTeam);
+            for (ObjectGuid const& guid : bf->GetPlayersInWarSet(TeamId(team)))
+            {
+                Player* p = ObjectAccessor::FindPlayer(guid);
+                if (!p || p->GetDistance2d(killer) >= 40.0f)
+                    continue;
+
+                if (!(coreAlreadyGaveCredit && isKillerTeam))
+                    p->KilledMonsterCredit(coreCredit);
+                p->KilledMonsterCredit(otherCredit);
+            }
         }
     }
 
