@@ -69,9 +69,6 @@ public:
 
         if (sCFBG->IsEnableSystem() && !ginfo->ArenaType && !ginfo->IsRated)
             index = BG_QUEUE_CFBG;
-
-        // After rework hook
-        // sCFBG->OnAddGroupToBGQueue(ginfo, group);
     }
 
     bool CanFillPlayersToBG(BattlegroundQueue* queue, Battleground* bg, BattlegroundBracketId bracket_id) override

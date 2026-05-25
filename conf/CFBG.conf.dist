@@ -68,6 +68,15 @@
 #       Description: allows players to choose the race they will be morphed into when joining battlegrounds as the opposite team.
 #       Default: 1 - Random
 #                0 - Player choice
+#
+#   CFBG.BalanceTeamsOnEntry.Enabled
+#       Description: When a solo player enters a battleground while the teams are
+#                    uneven, move them to the smaller team according to the live
+#                    in-BG head counts at that moment. If the teams are already
+#                    even they keep the team chosen at invite time, and grouped
+#                    players are never moved.
+#       Default: 1 - (Enabled)
+#                0 - (Disabled)
 
 CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
@@ -83,3 +92,4 @@ CFBG.EvenTeams.MaxPlayersThreshold = 5
 CFBG.ResetCooldowns = 0
 CFBG.Show.PlayerName = 0
 CFBG.RandomRaceSelection = 1
+CFBG.BalanceTeamsOnEntry.Enabled = 1

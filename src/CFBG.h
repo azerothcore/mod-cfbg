@@ -11,6 +11,7 @@
 #include "DBCEnums.h"
 #include "ObjectGuid.h"
 #include <array>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -101,11 +102,25 @@ struct CrossFactionQueueInfo
     std::array<uint32, 2> SumPlayerLevel{};
 
 private:
-    TeamId SelectBgTeam(GroupQueueInfo* groupInfo);
-    TeamId GetLowerAverageItemLevelTeam();
-
     CrossFactionQueueInfo() = delete;
     CrossFactionQueueInfo(CrossFactionQueueInfo&&) = delete;
+};
+
+// Precomputed numeric aggregates fed to CFBG::ResolveBalancedTeam, the single
+// shared team-decision cascade. Each caller (formation / reinforcement) builds
+// one from its own data source (queue tallies or live BG counts).
+struct TeamBalanceContext
+{
+    int32  countA{ 0 };               // head counts, candidate EXCLUDED
+    int32  countH{ 0 };
+    uint32 levelSumA{ 0 };            // candidate level ALREADY folded into its side
+    uint32 levelSumH{ 0 };
+    uint32 avgIlvlA{ 0 };            // per-team ilvl metric (bg avg OR queue sum)
+    uint32 avgIlvlH{ 0 };
+    uint32 evenCountA{ 0 };          // denominators for the EvenTeams avg-level step
+    uint32 evenCountH{ 0 };
+    std::optional<TeamId> hunterOverride{ std::nullopt }; // set only when the bg-gated hunter step fires
+    TeamId fallback{ TEAM_NEUTRAL }; // provisional / candidate team
 };
 
 class CFBG
@@ -126,6 +141,7 @@ public:
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
     inline bool IsEnableEvenTeams() const { return _IsEnableEvenTeams; }
     inline bool IsEnableResetCooldowns() const { return _IsEnableResetCooldowns; }
+    inline bool IsEnableBalanceTeamsOnEntry() const { return _IsEnableBalanceTeamsOnEntry; }
     inline uint32 EvenTeamsMaxPlayersThreshold() const { return _EvenTeamsMaxPlayersThreshold; }
     inline uint32 GetMaxPlayersCountInGroup() const { return _MaxPlayersCountInGroup; }
     inline uint8 GetBalanceClassMinLevel() const { return _balanceClassMinLevel; }
@@ -135,13 +151,10 @@ public:
 
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
     uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
-    uint32 GetAllPlayersCountInBG(Battleground* bg);
 
     TeamId GetLowerTeamIdInBG(Battleground* bg, BattlegroundQueue* bgQueue, GroupQueueInfo* groupInfo);
-    TeamId GetLowerAvgIlvlTeamInBg(Battleground* bg);
-    TeamId SelectBgTeam(Battleground* bg, GroupQueueInfo* groupInfo, CrossFactionQueueInfo* cfQueueInfo);
+    TeamId ResolveBalancedTeam(TeamBalanceContext const& ctx);
 
-    bool IsAvgIlvlTeamsInBgEqual(Battleground* bg);
     bool SendRealNameQuery(Player* player);
     bool IsPlayerFake(Player* player);
     bool ShouldForgetInListPlayers(Player* player);
@@ -173,10 +186,15 @@ public:
     inline auto GetRaceData() { return &_raceData; }
     inline auto GetRaceInfo() { return &_raceInfo; }
 
-    void OnAddGroupToBGQueue(GroupQueueInfo* ginfo, Group* group);
-
 private:
     bool isClassJoining(uint8 _class, Player* player, uint32 minLevel);
+
+    // Live, bg-gated hunter-class override for the reinforcement path. Returns a
+    // team only when EvenTeams + class-low-level balancing apply to the candidate.
+    std::optional<TeamId> ResolveHunterOverride(Battleground* bg, CrossFactionGroupInfo const& cfGroupInfo);
+
+    // Arrival-time head-count correction for solo entrants.
+    void BalanceTeamsOnEntry(Battleground* bg, Player* player);
 
     RandomSkinInfo GetRandomRaceMorph(TeamId team, uint8 playerClass, uint8 gender);
 
@@ -190,7 +208,6 @@ private:
     std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
     std::unordered_map<Player*, bool> _forgetInListPlayersStore;
-    std::unordered_map<GroupQueueInfo*, CrossFactionGroupInfo> _groupsInfo;
 
     std::array<RaceData, 12> _raceData{};
     std::array<CFBGRaceInfo, 9> _raceInfo{};
@@ -203,6 +220,7 @@ private:
     bool _IsEnableBalanceClassLowLevel;
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
+    bool _IsEnableBalanceTeamsOnEntry;
     bool _showPlayerName;
     bool _randomizeRaces;
     uint32 _EvenTeamsMaxPlayersThreshold;
