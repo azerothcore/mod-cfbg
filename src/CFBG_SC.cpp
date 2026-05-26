@@ -104,6 +104,7 @@ public:
     CFBG_Player() : PlayerScript("CFBG_Player", {
         PLAYERHOOK_ON_LOGIN,
         PLAYERHOOK_ON_LOGOUT,
+        PLAYERHOOK_ON_UPDATE_ZONE,
         PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE,
         PLAYERHOOK_ON_BEFORE_UPDATE,
         PLAYERHOOK_ON_BEFORE_SEND_CHAT_MESSAGE,
@@ -131,6 +132,24 @@ public:
         // and do not need to be handled here.
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
         if (bf && bf->GetTypeId() == BATTLEFIELD_WG && !bf->IsWarTime())
+            sCFBG->ClearFakePlayer(player);
+    }
+
+    // Fires after Player::UpdateZone has finished all Battlefield/OutdoorPvP/WorldState
+    // leave+enter calls. This is where we restore a WG fake player's real faction:
+    // doing it earlier (in OnBattlefieldPlayerLeaveZone) flips m_team before core's
+    // Battlefield::HandlePlayerLeaveZone runs, which erases PlayersInWar using the
+    // (now wrong) team and orphans the assigned-team entry.
+    void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 /*newArea*/) override
+    {
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+            return;
+
+        if (!sCFBG->IsPlayerFake(player))
+            return;
+
+        Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(newZone);
+        if (!bf || bf->GetTypeId() != BATTLEFIELD_WG)
             sCFBG->ClearFakePlayer(player);
     }
 
@@ -260,7 +279,7 @@ public:
             return;
 
         // player->GetTeamId() still returns the assigned team here; ClearFakePlayer
-        // is not called until OnBattlefieldPlayerLeaveZone fires afterwards.
+        // is not called until OnPlayerUpdateZone fires at the end of Player::UpdateZone.
         _wgWarPlayers[player->GetTeamId()].erase(player->GetGUID());
     }
 
@@ -276,13 +295,11 @@ public:
         // active (or if LeaveWar somehow did not fire), remove them from the
         // war tracking now.  A GUID erase on a set that does not contain the
         // key is a guaranteed no-op, so double-removal is safe.
+        // m_team is still the assigned team here: this hook fires from
+        // BattlefieldMgr::HandlePlayerLeaveZone BEFORE core's cleanup runs,
+        // and OnPlayerUpdateZone (where ClearFakePlayer now lives) only
+        // fires after UpdateZone completes.
         _wgWarPlayers[player->GetTeamId()].erase(player->GetGUID());
-
-        // All Battlefield data-structure cleanup has already been performed by
-        // the core using the assigned team.  It is now safe to restore the
-        // player's real race/faction.
-        if (sCFBG->IsPlayerFake(player))
-            sCFBG->ClearFakePlayer(player);
     }
 
     void OnBattlefieldPlayerKill(Battlefield* bf, Player* killer, Player* victim) override
