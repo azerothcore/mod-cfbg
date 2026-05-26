@@ -148,6 +148,15 @@ public:
         if (!sCFBG->IsPlayerFake(player))
             return;
 
+        // Battleground fakes are owned by the BG hooks (OnBattlegroundRemovePlayerAtLeave
+        // / OnBattlegroundEndReward), not this WG cleanup. A battleground zone is not a
+        // WG battlefield, so without this guard entering a BG would clear a cross-faction
+        // player's fake right after the entry morph (Battleground::AddPlayer runs before
+        // UpdateZone), leaving GetTeamId() on the real faction while bgTeamId stays on the
+        // assigned side -- the flag-capture/win desync. WG players are not InBattleground().
+        if (player->InBattleground())
+            return;
+
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(newZone);
         if (!bf || bf->GetTypeId() != BATTLEFIELD_WG)
             sCFBG->ClearFakePlayer(player);

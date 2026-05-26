@@ -5,12 +5,11 @@
  */
 
 #include "CFBG.h"
-#include "BattlegroundMgr.h"
+#include "BattlegroundQueue.h"
 #include "BattlegroundUtils.h"
 #include "Chat.h"
 #include "Config.h"
 #include "Containers.h"
-#include "GroupMgr.h"
 #include "Language.h"
 #include "Log.h"
 #include "Opcodes.h"
@@ -401,6 +400,17 @@ void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)
     // Genuine first entry only: skip relog re-adds (already in the BG), otherwise
     // the invited-count books would be adjusted a second time.
     if (bg->GetPlayers().find(player->GetGUID()) != bg->GetPlayers().end())
+        return;
+
+    // Never flip a player who is already faked. The faction sync that backs
+    // GetTeamId() -- SetFakeRaceAndMorph -> SetFactionForRace -> setTeamId() -- is
+    // skipped for already-faked players (its IsPlayerFake guard). Flipping bgTeamId
+    // now would therefore move the player to the new side for grouping/graveyards/
+    // win purposes while GetTeamId() (used by flag capture and scoring) stays on the
+    // OLD side -- e.g. an Alliance player on Horde's side capturing Alliance flags.
+    // Fresh entrants are not faked yet (the morph runs right after this), so they
+    // are still rebalanced normally.
+    if (IsPlayerFake(player))
         return;
 
     TeamId provisional = player->GetBgTeamId();
