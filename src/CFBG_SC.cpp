@@ -319,50 +319,32 @@ public:
         if (bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
-        // Grant both PvP-kill credit NPCs ("Slay Them All" Horde 13180 needs
-        // 31086; Alliance counterparts 13177/13179 need 39019) to the killer and
-        // to nearby same-team allies in the WG zone. KilledMonsterCredit on a
-        // quest the player does not hold is a no-op, so handing out both IDs
-        // safely covers crossfaction players whose held quest does not match
-        // their assigned team.
+        // Credit the killer directly on any WG-zone kill, war or not. Granting
+        // both PvP-kill credit NPCs covers crossfaction players whose held quest
+        // does not match their assigned team — KilledMonsterCredit on a quest
+        // the player does not hold is a no-op.
         //
-        // We deliberately do NOT gate on PlayersInWar: the daily must advance
-        // for kills in the WG zone even when no active war is running.
+        // Assist credit for nearby allies stays on core's existing lieutenant
+        // path (BattlefieldWG::HandleKill iterates PlayersInWar[killerTeam] when
+        // victim has SPELL_LIEUTENANT). We deliberately do NOT replicate that
+        // iteration for every kill: the per-kill cost would scale with war
+        // population (100+ players).
+        //
+        // To avoid double-crediting the killer when core's lieutenant path will
+        // fire, skip coreCredit if the victim is a lieutenant AND the killer is
+        // actually in PlayersInWar[killerTeam] (the only set core iterates).
         TeamId killerTeam = killer->GetTeamId();
         uint32 coreCredit  = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_ALLIANCE
                                                         : WG_NPC_QUEST_PVP_KILL_HORDE;
         uint32 otherCredit = (killerTeam == TEAM_HORDE) ? WG_NPC_QUEST_PVP_KILL_HORDE
                                                         : WG_NPC_QUEST_PVP_KILL_ALLIANCE;
-        bool victimIsLieutenant = victim->HasAura(WG_SPELL_LIEUTENANT);
 
-        auto grantTo = [&](Player* p)
-        {
-            // Skip coreCredit only when core's own lieutenant path will already
-            // credit this player. Core (BattlefieldWG::HandleKill) credits
-            // PlayersInWar[killerTeam] within 40y when victim has SPELL_LIEUTENANT.
-            bool coreWillCredit = victimIsLieutenant
-                               && p->GetTeamId() == killerTeam
-                               && bf->GetPlayersInWarSet(killerTeam).count(p->GetGUID()) > 0;
-            if (!coreWillCredit)
-                p->KilledMonsterCredit(coreCredit);
-            p->KilledMonsterCredit(otherCredit);
-        };
+        bool coreWillCreditKiller = victim->HasAura(WG_SPELL_LIEUTENANT)
+                                 && bf->GetPlayersInWarSet(killerTeam).count(killer->GetGUID()) > 0;
 
-        // Always credit the killer directly so the daily advances even when no
-        // war is running and PlayersInWar is empty.
-        grantTo(killer);
-
-        // Propagate assist credit to nearby same-team allies in the zone.
-        bf->ForEachPlayerInZone([&](Player* p)
-        {
-            if (!p || p == killer)
-                return;
-            if (p->GetTeamId() != killerTeam)
-                return;
-            if (p->GetDistance2d(killer) >= 40.0f)
-                return;
-            grantTo(p);
-        });
+        if (!coreWillCreditKiller)
+            killer->KilledMonsterCredit(coreCredit);
+        killer->KilledMonsterCredit(otherCredit);
     }
 
     void OnBattlefieldWarEnd(Battlefield* bf, bool /*endByTimer*/) override
