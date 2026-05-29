@@ -157,6 +157,7 @@ public:
 
     bool SendRealNameQuery(Player* player);
     bool IsPlayerFake(Player* player);
+    FakePlayer const* GetFakePlayer(Player* player) const;
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
 
@@ -199,7 +200,6 @@ private:
     RandomSkinInfo GetRandomRaceMorph(TeamId team, uint8 playerClass, uint8 gender);
 
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
-    FakePlayer const* GetFakePlayer(Player* player) const;
 
     void InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
     TeamId InviteGroupToBG(GroupQueueInfo* gInfo, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);

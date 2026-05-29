@@ -22,7 +22,8 @@ public:
     {
         static ChatCommandTable cfbgCommands =
         {
-            { "race", HandleCFBGChooseRace, SEC_PLAYER, Console::No },
+            { "race",  HandleCFBGChooseRace, SEC_PLAYER,        Console::No  },
+            { "debug", HandleCFBGDebug,      SEC_MODERATOR,     Console::Yes },
         };
 
         static ChatCommandTable commandTable =
@@ -93,6 +94,67 @@ public:
         else
         {
             handler->PSendSysMessage("CFBG selected race set to {}", raceInput);
+        }
+
+        return true;
+    }
+
+    static char const* TeamIdName(TeamId t)
+    {
+        switch (t)
+        {
+            case TEAM_ALLIANCE: return "Alliance";
+            case TEAM_HORDE:    return "Horde";
+            default:            return "Neutral";
+        }
+    }
+
+    static bool HandleCFBGDebug(ChatHandler* handler, Optional<PlayerIdentifier> player)
+    {
+        if (!player)
+            player = PlayerIdentifier::FromTargetOrSelf(handler);
+
+        if (!player || !player->IsConnected())
+        {
+            handler->SendErrorMessage(LANG_PLAYER_NOT_FOUND);
+            return false;
+        }
+
+        Player* target = player->GetConnectedPlayer();
+
+        bool const isFake     = sCFBG->IsPlayerFake(target);
+        bool const native     = sCFBG->IsPlayingNative(target);
+        bool const forgetBG   = sCFBG->ShouldForgetBGPlayers(target);
+        bool const forgetList = sCFBG->ShouldForgetInListPlayers(target);
+
+        uint8 const preferredRace = target->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
+
+        handler->PSendSysMessage("CFBG debug: {} [GUID: {}]",
+            target->GetName(), target->GetGUID().ToString());
+        handler->PSendSysMessage("  System enabled: {}  WG enabled: {}",
+            sCFBG->IsEnableSystem() ? "yes" : "no",
+            sCFBG->IsEnableWGSystem() ? "yes" : "no");
+        handler->PSendSysMessage("  Faked: {}  PlayingNative: {}",
+            isFake ? "yes" : "no", native ? "yes" : "no");
+        handler->PSendSysMessage("  ForgetBGPlayers: {}  ForgetInListPlayers: {}",
+            forgetBG ? "yes" : "no", forgetList ? "yes" : "no");
+        handler->PSendSysMessage("  Class: {}  Gender: {}",
+            uint32(target->getClass()), uint32(target->getGender()));
+        handler->PSendSysMessage("  Native : race={}  team={}",
+            uint32(target->getRace(true)), TeamIdName(target->GetTeamId(true)));
+        handler->PSendSysMessage("  Current: race={}  team={}  display={}/{} (current/native)",
+            uint32(target->getRace()), TeamIdName(target->GetTeamId()),
+            target->GetDisplayId(), target->GetNativeDisplayId());
+        handler->PSendSysMessage("  PreferredRace setting: {}", uint32(preferredRace));
+
+        if (FakePlayer const* fake = sCFBG->GetFakePlayer(target))
+        {
+            handler->SendSysMessage("  Fake record:");
+            handler->PSendSysMessage("    Fake race={}  morph={}  team={}",
+                uint32(fake->FakeRace), fake->FakeMorph, TeamIdName(fake->FakeTeamID));
+            handler->PSendSysMessage("    Real race={}  morph={}  nativeMorph={}  team={}",
+                uint32(fake->RealRace), fake->RealMorph, fake->RealNativeMorph,
+                TeamIdName(fake->RealTeamID));
         }
 
         return true;
