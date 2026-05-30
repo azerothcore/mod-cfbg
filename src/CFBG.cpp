@@ -351,6 +351,12 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player)
     if (!_IsEnableSystem || !bg || bg->isArena() || !player)
         return;
 
+    // A WG fake survives the teleport into a BG: OnPlayerUpdateZone's
+    // InBattleground() guard blocks the deferred clear. Drop it so
+    // BalanceTeamsOnEntry and SetFakeRaceAndMorph run against BG state.
+    if (IsPlayerFake(player))
+        ClearFakePlayer(player);
+
     BalanceTeamsOnEntry(bg, player);
 
     TeamId teamId{ player->GetBgTeamId() };
