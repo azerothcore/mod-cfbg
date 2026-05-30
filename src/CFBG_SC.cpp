@@ -245,8 +245,6 @@ class CFBG_Battlefield : public BattlefieldScript
 public:
     CFBG_Battlefield() : BattlefieldScript("CFBG_Battlefield", {
         BATTLEFIELDHOOK_ON_PLAYER_JOIN_WAR,
-        BATTLEFIELDHOOK_ON_PLAYER_LEAVE_WAR,
-        BATTLEFIELDHOOK_ON_PLAYER_LEAVE_ZONE,
         BATTLEFIELDHOOK_ON_WAR_END,
         BATTLEFIELDHOOK_ON_PLAYER_KILL
     }) {}
@@ -262,8 +260,13 @@ public:
         if (sCFBG->IsPlayerFake(player))
             return;
 
-        uint32 allianceCount = static_cast<uint32>(_wgWarPlayers[TEAM_ALLIANCE].size());
-        uint32 hordeCount    = static_cast<uint32>(_wgWarPlayers[TEAM_HORDE].size());
+        // Hook fires before core's PlayersInWar.insert, so the candidate is
+        // counted in neither side here. Reading the live core set drops the
+        // parallel bucket we used to maintain and removes the divergence path
+        // where AddOrSetPlayerToCorrectBfGroup rejects the join after the
+        // hook has already mutated module state.
+        uint32 allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
+        uint32 hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
 
         TeamId realTeam     = player->GetTeamId(true);
         TeamId assignedTeam = realTeam;
@@ -275,40 +278,6 @@ public:
 
         if (assignedTeam != realTeam)
             sCFBG->SetFakeRaceAndMorphForBF(player, assignedTeam);
-
-        _wgWarPlayers[assignedTeam].insert(player->GetGUID());
-    }
-
-    void OnBattlefieldPlayerLeaveWar(Battlefield* bf, Player* player) override
-    {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
-            return;
-
-        if (bf->GetTypeId() != BATTLEFIELD_WG)
-            return;
-
-        // player->GetTeamId() still returns the assigned team here; ClearFakePlayer
-        // is not called until OnPlayerUpdateZone fires at the end of Player::UpdateZone.
-        _wgWarPlayers[player->GetTeamId()].erase(player->GetGUID());
-    }
-
-    void OnBattlefieldPlayerLeaveZone(Battlefield* bf, Player* player) override
-    {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
-            return;
-
-        if (bf->GetTypeId() != BATTLEFIELD_WG)
-            return;
-
-        // Safety catch-all: if the player leaves the zone while war is not
-        // active (or if LeaveWar somehow did not fire), remove them from the
-        // war tracking now.  A GUID erase on a set that does not contain the
-        // key is a guaranteed no-op, so double-removal is safe.
-        // m_team is still the assigned team here: this hook fires from
-        // BattlefieldMgr::HandlePlayerLeaveZone BEFORE core's cleanup runs,
-        // and OnPlayerUpdateZone (where ClearFakePlayer now lives) only
-        // fires after UpdateZone completes.
-        _wgWarPlayers[player->GetTeamId()].erase(player->GetGUID());
     }
 
     void OnBattlefieldPlayerKill(Battlefield* bf, Player* killer, Player* victim) override
@@ -355,29 +324,16 @@ public:
         if (bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
-        // When the war ends, the core clears PlayersInWar in bulk without
-        // firing per-player LeaveWar hooks.  Players staying in the WG zone
-        // never trigger LeaveZone either, so their fake faction would persist
-        // indefinitely.  Iterate our own tracking and restore each player now.
+        // Hook fires before OnBattleEnd clears PlayersInWar, so each side's
+        // war set still reflects who was actively fighting. ClearFakePlayer
+        // is a no-op for unfaked players, so iterating GUIDs that may or may
+        // not be faked is safe.
         for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
-        {
-            for (ObjectGuid const& guid : _wgWarPlayers[team])
-            {
-                Player* player = ObjectAccessor::FindPlayer(guid);
-                if (player && sCFBG->IsPlayerFake(player))
-                    sCFBG->ClearFakePlayer(player);
-            }
-            _wgWarPlayers[team].clear();
-        }
+            for (ObjectGuid const& guid : bf->GetPlayersInWarSet(static_cast<TeamId>(team)))
+                if (Player* player = ObjectAccessor::FindPlayer(guid))
+                    if (sCFBG->IsPlayerFake(player))
+                        sCFBG->ClearFakePlayer(player);
     }
-
-private:
-    // Module-owned WG war-player tracking, indexed by the CFBG-assigned TeamId.
-    // Populated when a player accepts a war invitation (JoinWar) and drained
-    // when they leave the war (LeaveWar) or zone (LeaveZone catch-all).
-    // Kept separately from the core's m_PlayersInWar / m_InvitedPlayers so that
-    // balance decisions during active war are always based on clean state.
-    GuidUnorderedSet _wgWarPlayers[PVP_TEAMS_COUNT];
 };
 
 class CFBG_World : public WorldScript
