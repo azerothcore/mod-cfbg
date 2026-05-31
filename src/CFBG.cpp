@@ -12,6 +12,7 @@
 #include "Containers.h"
 #include "Language.h"
 #include "Log.h"
+#include "ObjectAccessor.h"
 #include "Opcodes.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
@@ -495,23 +496,14 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
         skinInfo.second = GetMorphFromRace(skinInfo.first, player->getGender());
     }
 
-    FakePlayer fakePlayerInfo
-    {
-        skinInfo.first,
-        skinInfo.second,
-        player->TeamIdForRace(skinInfo.first),
-        player->getRace(true),
-        player->GetDisplayId(),
-        player->GetNativeDisplayId(),
-        player->GetTeamId(true)
-    };
+    TeamId const fakeTeam = player->TeamIdForRace(skinInfo.first);
 
-    player->setRace(fakePlayerInfo.FakeRace);
-    SetFactionForRace(player, fakePlayerInfo.FakeRace, fakePlayerInfo.FakeTeamID);
-    player->SetDisplayId(fakePlayerInfo.FakeMorph);
-    player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
+    player->setRace(skinInfo.first);
+    SetFactionForRace(player, skinInfo.first, fakeTeam);
+    player->SetDisplayId(skinInfo.second);
+    player->SetNativeDisplayId(skinInfo.second);
 
-    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    _fakePlayerGuids.insert(player->GetGUID());
 }
 
 void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
@@ -534,23 +526,12 @@ void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
         skinInfo.second = GetMorphFromRace(skinInfo.first, player->getGender());
     }
 
-    FakePlayer fakePlayerInfo
-    {
-        skinInfo.first,
-        skinInfo.second,
-        assignedTeam,
-        player->getRace(true),
-        player->GetDisplayId(),
-        player->GetNativeDisplayId(),
-        realTeam
-    };
+    player->setRace(skinInfo.first);
+    SetFactionForRace(player, skinInfo.first, assignedTeam);
+    player->SetDisplayId(skinInfo.second);
+    player->SetNativeDisplayId(skinInfo.second);
 
-    player->setRace(fakePlayerInfo.FakeRace);
-    SetFactionForRace(player, fakePlayerInfo.FakeRace, assignedTeam);
-    player->SetDisplayId(fakePlayerInfo.FakeMorph);
-    player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
-
-    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    _fakePlayerGuids.insert(player->GetGUID());
 }
 
 void CFBG::SetFactionForRace(Player* player, uint8 Race, TeamId teamId)
@@ -572,29 +553,45 @@ void CFBG::SetFactionForRace(Player* player, uint8 Race, TeamId teamId)
 
 void CFBG::ClearFakePlayer(Player* player)
 {
-    if (!IsPlayerFake(player))
+    if (player)
+        ClearFakePlayer(player->GetGUID());
+}
+
+void CFBG::ClearFakePlayer(ObjectGuid guid)
+{
+    if (!_fakePlayerGuids.contains(guid))
         return;
 
-    player->setRace(_fakePlayerStore[player].RealRace);
-    player->SetDisplayId(_fakePlayerStore[player].RealMorph);
-    player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
-    SetFactionForRace(player, _fakePlayerStore[player].RealRace, _fakePlayerStore[player].RealTeamID);
+    // Online players get visuals/faction restored from the canonical race+gender
+    // DBC entry; m_realRace survives the fake (Unit::setRace only touches m_race),
+    // so getRace(true) / GetTeamId(true) yield the real values without any stored
+    // snapshot. Offline players just drop the tracking entry -- they load real
+    // race/faction from the DB on next login regardless.
+    if (Player* player = ObjectAccessor::FindPlayer(guid))
+    {
+        uint8 const realRace = player->getRace(true);
+        TeamId const realTeam = player->GetTeamId(true);
 
-    // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
-    player->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, false);
-    player->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_FRIENDLY, false);
+        uint32 nativeDisplay = 0;
+        if (ChrRacesEntry const* raceEntry = sChrRacesStore.LookupEntry(realRace))
+            nativeDisplay = (player->getGender() == GENDER_MALE) ? raceEntry->model_m : raceEntry->model_f;
 
-    _fakePlayerStore.erase(player);
+        player->setRace(realRace);
+        player->SetDisplayId(nativeDisplay);
+        player->SetNativeDisplayId(nativeDisplay);
+        SetFactionForRace(player, realRace, realTeam);
+
+        // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
+        player->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, false);
+        player->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_FRIENDLY, false);
+    }
+
+    _fakePlayerGuids.erase(guid);
 }
 
 bool CFBG::IsPlayerFake(Player* player)
 {
-    return _fakePlayerStore.contains(player);
-}
-
-FakePlayer const* CFBG::GetFakePlayer(Player* player) const
-{
-    return Acore::Containers::MapGetValuePtr(_fakePlayerStore, player);
+    return player && _fakePlayerGuids.contains(player->GetGUID());
 }
 
 void CFBG::DoForgetPlayersInList(Player* player)

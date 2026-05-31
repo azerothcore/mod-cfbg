@@ -13,6 +13,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Player;
@@ -48,20 +49,6 @@ constexpr auto FACTION_STORMPIKE_GUARD = 730;
 
 // Cfbg settings
 constexpr auto SETTING_CFBG_RACE = 0;
-
-struct FakePlayer
-{
-    // Fake
-    uint8   FakeRace;
-    uint32  FakeMorph;
-    TeamId  FakeTeamID;
-
-    // Real
-    uint8   RealRace;
-    uint32  RealMorph;
-    uint32  RealNativeMorph;
-    TeamId  RealTeamID;
-};
 
 struct RaceData
 {
@@ -157,7 +144,6 @@ public:
 
     bool SendRealNameQuery(Player* player);
     bool IsPlayerFake(Player* player);
-    FakePlayer const* GetFakePlayer(Player* player) const;
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
 
@@ -166,6 +152,7 @@ public:
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
     void ClearFakePlayer(Player* player);
+    void ClearFakePlayer(ObjectGuid guid);
     void DoForgetPlayersInList(Player* player);
     void FitPlayerInTeam(Player* player, bool action, Battleground* bg);
     void DoForgetPlayersInBG(Player* player, Battleground* bg);
@@ -202,7 +189,7 @@ private:
     void InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
     TeamId InviteGroupToBG(GroupQueueInfo* gInfo, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
 
-    std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
+    std::unordered_set<ObjectGuid> _fakePlayerGuids;
     std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
     std::unordered_map<Player*, bool> _forgetInListPlayersStore;

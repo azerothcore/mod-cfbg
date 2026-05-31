@@ -325,14 +325,14 @@ public:
             return;
 
         // Hook fires before OnBattleEnd clears PlayersInWar, so each side's
-        // war set still reflects who was actively fighting. ClearFakePlayer
-        // is a no-op for unfaked players, so iterating GUIDs that may or may
-        // not be faked is safe.
+        // war set still reflects who was actively fighting. The GUID-form
+        // ClearFakePlayer is a no-op for unfaked entries and covers both the
+        // online (restore in place via ObjectAccessor::FindPlayer) and
+        // offline (drop the tracking entry; real race/faction loads from DB
+        // on next login) cases.
         for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
             for (ObjectGuid const& guid : bf->GetPlayersInWarSet(static_cast<TeamId>(team)))
-                if (Player* player = ObjectAccessor::FindPlayer(guid))
-                    if (sCFBG->IsPlayerFake(player))
-                        sCFBG->ClearFakePlayer(player);
+                sCFBG->ClearFakePlayer(guid);
     }
 };
 

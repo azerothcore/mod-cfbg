@@ -147,16 +147,6 @@ public:
             target->GetDisplayId(), target->GetNativeDisplayId());
         handler->PSendSysMessage("  PreferredRace setting: {}", uint32(preferredRace));
 
-        if (FakePlayer const* fake = sCFBG->GetFakePlayer(target))
-        {
-            handler->SendSysMessage("  Fake record:");
-            handler->PSendSysMessage("    Fake race={}  morph={}  team={}",
-                uint32(fake->FakeRace), fake->FakeMorph, TeamIdName(fake->FakeTeamID));
-            handler->PSendSysMessage("    Real race={}  morph={}  nativeMorph={}  team={}",
-                uint32(fake->RealRace), fake->RealMorph, fake->RealNativeMorph,
-                TeamIdName(fake->RealTeamID));
-        }
-
         return true;
     }
 
