@@ -109,6 +109,9 @@ public:
         }
     }
 
+    static char const* YesNo(bool v) { return v ? "yes" : "no"; }
+    static char const* MarkYN(bool v) { return v ? "Y" : "-"; }
+
     static bool HandleCFBGDebug(ChatHandler* handler, Optional<PlayerIdentifier> player)
     {
         if (!player)
@@ -121,121 +124,124 @@ public:
         }
 
         Player* target = player->GetConnectedPlayer();
+        ObjectGuid const guid = target->GetGUID();
 
         bool const isFake     = sCFBG->IsPlayerFake(target);
         bool const native     = sCFBG->IsPlayingNative(target);
         bool const forgetBG   = sCFBG->ShouldForgetBGPlayers(target);
         bool const forgetList = sCFBG->ShouldForgetInListPlayers(target);
-
+        bool const inBG       = target->InBattleground();
         uint8 const preferredRace = target->GetPlayerSetting("mod-cfbg", SETTING_CFBG_RACE).value;
-
-        handler->PSendSysMessage("CFBG debug: {} [GUID: {}]",
-            target->GetName(), target->GetGUID().ToString());
-        handler->PSendSysMessage("  System enabled: {}  WG enabled: {}",
-            sCFBG->IsEnableSystem() ? "yes" : "no",
-            sCFBG->IsEnableWGSystem() ? "yes" : "no");
-        handler->PSendSysMessage("  Faked: {}  PlayingNative: {}",
-            isFake ? "yes" : "no", native ? "yes" : "no");
-        handler->PSendSysMessage("  ForgetBGPlayers: {}  ForgetInListPlayers: {}",
-            forgetBG ? "yes" : "no", forgetList ? "yes" : "no");
-        handler->PSendSysMessage("  Class: {}  Gender: {}",
-            uint32(target->getClass()), uint32(target->getGender()));
-        handler->PSendSysMessage("  Native : race={}  team={}",
-            uint32(target->getRace(true)), TeamIdName(target->GetTeamId(true)));
-        handler->PSendSysMessage("  Current: race={}  team={}  display={}/{} (current/native)",
-            uint32(target->getRace()), TeamIdName(target->GetTeamId()),
-            target->GetDisplayId(), target->GetNativeDisplayId());
-        handler->PSendSysMessage("  BgTeamId: {}  InBattleground: {}",
-            TeamIdName(target->GetBgTeamId()),
-            target->InBattleground() ? "yes" : "no");
-        handler->PSendSysMessage("  PreferredRace setting: {}", uint32(preferredRace));
-
         FakePlayer const* fake = sCFBG->GetFakePlayer(target);
+
+        // === Header ===
+        handler->PSendSysMessage("=== CFBG debug: {} ===", target->GetName());
+        handler->PSendSysMessage("  GUID: {}", guid.ToString());
+        handler->PSendSysMessage("  Config:  System={}  WG={}",
+            YesNo(sCFBG->IsEnableSystem()), YesNo(sCFBG->IsEnableWGSystem()));
+
+        // === Faction / appearance ===
+        handler->SendSysMessage(" ");
+        handler->SendSysMessage("  Faction");
+        handler->PSendSysMessage("    Native     {:<8}  (race {})",
+            TeamIdName(target->GetTeamId(true)), uint32(target->getRace(true)));
+        handler->PSendSysMessage("    Current    {:<8}  (race {})",
+            TeamIdName(target->GetTeamId()), uint32(target->getRace()));
+        handler->PSendSysMessage("    BG team    {}", TeamIdName(target->GetBgTeamId()));
+        handler->PSendSysMessage("    Display    {} (current) / {} (native)",
+            target->GetDisplayId(), target->GetNativeDisplayId());
+
+        // === CFBG state ===
+        handler->SendSysMessage(" ");
+        handler->SendSysMessage("  State");
+        handler->PSendSysMessage("    Faked              {}", YesNo(isFake));
+        handler->PSendSysMessage("    Playing native     {}", YesNo(native));
+        handler->PSendSysMessage("    In battleground    {}", YesNo(inBG));
+        handler->PSendSysMessage("    Class / Gender     {} / {}",
+            uint32(target->getClass()), uint32(target->getGender()));
+        handler->PSendSysMessage("    Preferred race     {}", uint32(preferredRace));
+        handler->PSendSysMessage("    Forget BG players  {}", YesNo(forgetBG));
+        handler->PSendSysMessage("    Forget in list     {}", YesNo(forgetList));
+
+        // === Fake record ===
         if (fake)
         {
-            handler->SendSysMessage("  Fake record:");
-            handler->PSendSysMessage("    Fake race={}  morph={}  team={}",
-                uint32(fake->FakeRace), fake->FakeMorph, TeamIdName(fake->FakeTeamID));
-            handler->PSendSysMessage("    Real race={}  morph={}  nativeMorph={}  team={}",
-                uint32(fake->RealRace), fake->RealMorph, fake->RealNativeMorph,
-                TeamIdName(fake->RealTeamID));
+            handler->SendSysMessage(" ");
+            handler->SendSysMessage("  Fake record");
+            handler->PSendSysMessage("    Fake  team={:<8}  race={}  morph={}",
+                TeamIdName(fake->FakeTeamID), uint32(fake->FakeRace), fake->FakeMorph);
+            handler->PSendSysMessage("    Real  team={:<8}  race={}  morph={}  nativeMorph={}",
+                TeamIdName(fake->RealTeamID), uint32(fake->RealRace),
+                fake->RealMorph, fake->RealNativeMorph);
         }
 
-        // === Wintergrasp diagnostics ===
-        ObjectGuid const guid = target->GetGUID();
-        uint32 const zoneId   = target->GetZoneId();
+        // === Wintergrasp ===
+        uint32 const zoneId = target->GetZoneId();
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(zoneId);
         bool const inWGZone = bf && bf->GetTypeId() == BATTLEFIELD_WG;
 
-        // Locate any WG battlefield (whether the player is in its zone or not),
-        // so we can detect stale fakes that linger outside the zone.
+        // Look up the WG battlefield even when the player is elsewhere, so we
+        // can still flag stale fakes outside the zone. 4197 is Wintergrasp.
         Battlefield* wg = inWGZone ? bf : nullptr;
         if (!wg)
-        {
-            // BattleId 1 is WG by registration order; safer to look up by zone.
-            // Use the well-known WG zone id (Wintergrasp = 4197).
             if (Battlefield* candidate = sBattlefieldMgr->GetBattlefieldToZoneId(4197))
                 if (candidate->GetTypeId() == BATTLEFIELD_WG)
                     wg = candidate;
-        }
 
-        handler->SendSysMessage("  --- Wintergrasp ---");
-        handler->PSendSysMessage("    InWGZone: {}  (zone={})",
-            inWGZone ? "yes" : "no", zoneId);
+        handler->SendSysMessage(" ");
+        handler->SendSysMessage("  Wintergrasp");
+        handler->PSendSysMessage("    In WG zone   {} (zone {})", YesNo(inWGZone), zoneId);
 
         if (!wg)
         {
-            handler->SendSysMessage("    No WG battlefield instance found.");
+            handler->SendSysMessage("    War time     n/a (no WG battlefield)");
         }
         else
         {
-            handler->PSendSysMessage("    WarTime: {}", wg->IsWarTime() ? "yes" : "no");
+            handler->PSendSysMessage("    War time     {}", YesNo(wg->IsWarTime()));
 
-            bool const inQueueA   = wg->GetPlayersQueueSet(TEAM_ALLIANCE).count(guid) > 0;
-            bool const inQueueH   = wg->GetPlayersQueueSet(TEAM_HORDE).count(guid) > 0;
-            bool const invitedA   = wg->GetInvitedPlayersMap(TEAM_ALLIANCE).count(guid) > 0;
-            bool const invitedH   = wg->GetInvitedPlayersMap(TEAM_HORDE).count(guid) > 0;
-            bool const inWarA     = wg->GetPlayersInWarSet(TEAM_ALLIANCE).count(guid) > 0;
-            bool const inWarH     = wg->GetPlayersInWarSet(TEAM_HORDE).count(guid) > 0;
+            bool const inQueueA = wg->GetPlayersQueueSet(TEAM_ALLIANCE).count(guid) > 0;
+            bool const inQueueH = wg->GetPlayersQueueSet(TEAM_HORDE).count(guid)    > 0;
+            bool const invitedA = wg->GetInvitedPlayersMap(TEAM_ALLIANCE).count(guid) > 0;
+            bool const invitedH = wg->GetInvitedPlayersMap(TEAM_HORDE).count(guid)    > 0;
+            bool const inWarA   = wg->GetPlayersInWarSet(TEAM_ALLIANCE).count(guid)   > 0;
+            bool const inWarH   = wg->GetPlayersInWarSet(TEAM_HORDE).count(guid)      > 0;
 
-            handler->PSendSysMessage("    Player in sets:  Queue A/H={}/{}  Invited A/H={}/{}  InWar A/H={}/{}",
-                inQueueA ? "Y" : "-", inQueueH ? "Y" : "-",
-                invitedA ? "Y" : "-", invitedH ? "Y" : "-",
-                inWarA   ? "Y" : "-", inWarH   ? "Y" : "-");
+            handler->SendSysMessage("    Player in sets:");
+            handler->PSendSysMessage("                   Alliance  Horde");
+            handler->PSendSysMessage("      Queue           {}        {}", MarkYN(inQueueA), MarkYN(inQueueH));
+            handler->PSendSysMessage("      Invited         {}        {}", MarkYN(invitedA), MarkYN(invitedH));
+            handler->PSendSysMessage("      In war          {}        {}", MarkYN(inWarA),   MarkYN(inWarH));
 
-            // Which core-tracked team does the player belong to right now, if any?
+            // Which side does core track this player on, if any?
+            bool const onA = inWarA || invitedA || inQueueA;
+            bool const onH = inWarH || invitedH || inQueueH;
             std::optional<TeamId> coreTeam;
-            if (inWarA || invitedA || inQueueA) coreTeam = TEAM_ALLIANCE;
-            if (inWarH || invitedH || inQueueH) coreTeam = TEAM_HORDE;
-            bool const inBothSides = (inWarA || invitedA || inQueueA) && (inWarH || invitedH || inQueueH);
+            if (onA) coreTeam = TEAM_ALLIANCE;
+            if (onH) coreTeam = TEAM_HORDE;
+            bool const inBothSides = onA && onH;
 
-            // ---- Oddity checks ----
+            // ---- Oddity scan ----
             std::vector<std::string> issues;
 
-            // 1. Player appears on both teams simultaneously in any WG set.
             if (inBothSides)
-                issues.emplace_back("Player tracked in BOTH Alliance and Horde WG sets (set leak)");
+                issues.emplace_back("Tracked on BOTH Alliance and Horde WG sets (set leak)");
 
-            // 2. Fake record exists but FakeTeamID == RealTeamID — stale/no-op fake.
             if (fake && fake->FakeTeamID == fake->RealTeamID)
                 issues.emplace_back(Acore::StringFormat(
-                    "Fake record present but FakeTeamID == RealTeamID ({}) — stale fake",
+                    "Stale fake record: FakeTeamID == RealTeamID ({})",
                     TeamIdName(fake->FakeTeamID)));
 
-            // 3. GetTeamId() disagrees with the side the core has the player on.
             if (coreTeam && !inBothSides && target->GetTeamId() != *coreTeam)
                 issues.emplace_back(Acore::StringFormat(
                     "Current team ({}) does not match core WG side ({})",
                     TeamIdName(target->GetTeamId()), TeamIdName(*coreTeam)));
 
-            // 4. Fake record's FakeTeamID disagrees with the core WG side.
             if (fake && coreTeam && !inBothSides && fake->FakeTeamID != *coreTeam)
                 issues.emplace_back(Acore::StringFormat(
                     "Fake team ({}) does not match core WG side ({})",
                     TeamIdName(fake->FakeTeamID), TeamIdName(*coreTeam)));
 
-            // 5. Player is faked and in war, but is sitting in the war set of
-            //    their REAL team instead of the assigned/fake team.
             if (isFake && fake)
             {
                 bool const inRealWarSet = (fake->RealTeamID == TEAM_ALLIANCE) ? inWarA : inWarH;
@@ -246,29 +252,25 @@ public:
                         TeamIdName(fake->FakeTeamID), TeamIdName(fake->RealTeamID)));
             }
 
-            // 6. War is active and player is in zone, faked, but not in either war set.
             if (inWGZone && wg->IsWarTime() && isFake && !inWarA && !inWarH && !invitedA && !invitedH)
-                issues.emplace_back("Faked in WG zone during war, but absent from war/invited sets");
+                issues.emplace_back("Faked in WG zone during war but absent from war/invited sets");
 
-            // 7. Player is faked but currently outside WG zone and not in a BG —
-            //    cleanup leak (the OnPlayerUpdateZone path should have fired).
-            if (isFake && !inWGZone && !target->InBattleground())
-                issues.emplace_back("Faked while outside WG zone and not in a BG (cleanup leak)");
+            if (isFake && !inWGZone && !inBG)
+                issues.emplace_back("Faked outside WG zone with no battleground (cleanup leak)");
 
-            // 8. WG hook is disabled in config but a WG-style fake is present in
-            //    the WG zone — config flipped mid-life.
             if (inWGZone && isFake && !sCFBG->IsEnableWGSystem())
                 issues.emplace_back("Faked in WG zone but CFBG.Battlefield.Enable=0");
 
+            handler->SendSysMessage(" ");
             if (issues.empty())
             {
-                handler->SendSysMessage("    Oddities: none");
+                handler->SendSysMessage("  Oddities: none");
             }
             else
             {
-                handler->SendSysMessage("    Oddities:");
+                handler->PSendSysMessage("  Oddities ({}):", uint32(issues.size()));
                 for (std::string const& msg : issues)
-                    handler->PSendSysMessage("      ! {}", msg);
+                    handler->PSendSysMessage("    ! {}", msg);
             }
         }
 
