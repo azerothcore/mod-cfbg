@@ -442,6 +442,12 @@ void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)
     bg->DecreaseInvitedCount(provisional);
     bg->IncreaseInvitedCount(corrected);
     player->GetBGData().bgTeamId = corrected;
+
+    // The player was already teleported to the provisional base before AddPlayer;
+    // move them to the corrected base so they don't spawn at the enemy's.
+    Position const* startPos = bg->GetTeamStartPosition(corrected);
+    player->TeleportTo(bg->GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(),
+        startPos->GetPositionZ(), startPos->GetOrientation());
 }
 
 uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
