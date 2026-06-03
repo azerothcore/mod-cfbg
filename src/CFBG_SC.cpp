@@ -108,7 +108,8 @@ public:
         PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE,
         PLAYERHOOK_ON_BEFORE_UPDATE,
         PLAYERHOOK_ON_BEFORE_SEND_CHAT_MESSAGE,
-        PLAYERHOOK_ON_REPUTATION_CHANGE
+        PLAYERHOOK_ON_REPUTATION_CHANGE,
+        PLAYERHOOK_ON_PLAYER_RESURRECT
     }) { }
 
     void OnPlayerLogin(Player* player) override
@@ -213,6 +214,23 @@ public:
 
         // to gm lang
         lang = LANG_UNIVERSAL;
+    }
+
+    void OnPlayerResurrect(Player* player, float /*restorePercent*/, bool& /*applySickness*/) override
+    {
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+            return;
+
+        if (!sCFBG->IsPlayerFake(player))
+            return;
+
+        // Only re-apply for WG fakes. Battleground fakes are owned by the BG
+        // hooks and must not be touched here.
+        Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
+        if (!bf || bf->GetTypeId() != BATTLEFIELD_WG)
+            return;
+
+        sCFBG->ReapplyFakePlayer(player);
     }
 
     bool OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool /*incremental*/) override
