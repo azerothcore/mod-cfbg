@@ -152,6 +152,7 @@ void CFBG::LoadConfig()
 
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
+    _IsEnableWGReapplyOnResurrect = sConfigMgr->GetOption<bool>("CFBG.Battlefield.ReapplyOnResurrect.Enable", true);
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);

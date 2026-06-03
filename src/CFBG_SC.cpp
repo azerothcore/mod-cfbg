@@ -218,7 +218,7 @@ public:
 
     void OnPlayerResurrect(Player* player, float /*restorePercent*/, bool& /*applySickness*/) override
     {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem() || !sCFBG->IsEnableWGReapplyOnResurrect())
             return;
 
         if (!sCFBG->IsPlayerFake(player))
