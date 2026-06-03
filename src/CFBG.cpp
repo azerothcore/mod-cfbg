@@ -151,6 +151,7 @@ void CFBG::LoadConfig()
         return;
 
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
+    _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
@@ -601,6 +602,25 @@ bool CFBG::IsPlayerFake(Player* player)
 FakePlayer const* CFBG::GetFakePlayer(Player* player) const
 {
     return Acore::Containers::MapGetValuePtr(_fakePlayerStore, player);
+}
+
+std::optional<TeamId> CFBG::GetWGWarAssignment(ObjectGuid guid) const
+{
+    auto const& itr = _wgWarAssignmentStore.find(guid);
+    if (itr == _wgWarAssignmentStore.end())
+        return std::nullopt;
+
+    return itr->second;
+}
+
+void CFBG::SetWGWarAssignment(ObjectGuid guid, TeamId team)
+{
+    _wgWarAssignmentStore[guid] = team;
+}
+
+void CFBG::ClearWGWarAssignments()
+{
+    _wgWarAssignmentStore.clear();
 }
 
 void CFBG::DoForgetPlayersInList(Player* player)

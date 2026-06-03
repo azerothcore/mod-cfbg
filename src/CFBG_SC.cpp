@@ -260,21 +260,35 @@ public:
         if (sCFBG->IsPlayerFake(player))
             return;
 
-        // Hook fires before core's PlayersInWar.insert, so the candidate is
-        // counted in neither side here. Reading the live core set drops the
-        // parallel bucket we used to maintain and removes the divergence path
-        // where AddOrSetPlayerToCorrectBfGroup rejects the join after the
-        // hook has already mutated module state.
-        uint32 allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
-        uint32 hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
-
         TeamId realTeam     = player->GetTeamId(true);
         TeamId assignedTeam = realTeam;
 
-        if (realTeam == TEAM_ALLIANCE && allianceCount > hordeCount)
-            assignedTeam = TEAM_HORDE;
-        else if (realTeam == TEAM_HORDE && hordeCount > allianceCount)
-            assignedTeam = TEAM_ALLIANCE;
+        // Reuse the team locked earlier this war so rejoining keeps the same
+        // side instead of re-rolling the balance.
+        std::optional<TeamId> locked;
+        if (sCFBG->IsEnableWGTeamLock())
+            locked = sCFBG->GetWGWarAssignment(player->GetGUID());
+
+        if (locked)
+            assignedTeam = *locked;
+        else
+        {
+            // Hook fires before core's PlayersInWar.insert, so the candidate is
+            // counted in neither side here. Reading the live core set drops the
+            // parallel bucket we used to maintain and removes the divergence path
+            // where AddOrSetPlayerToCorrectBfGroup rejects the join after the
+            // hook has already mutated module state.
+            uint32 allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
+            uint32 hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
+
+            if (realTeam == TEAM_ALLIANCE && allianceCount > hordeCount)
+                assignedTeam = TEAM_HORDE;
+            else if (realTeam == TEAM_HORDE && hordeCount > allianceCount)
+                assignedTeam = TEAM_ALLIANCE;
+
+            if (sCFBG->IsEnableWGTeamLock())
+                sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);
+        }
 
         if (assignedTeam != realTeam)
             sCFBG->SetFakeRaceAndMorphForBF(player, assignedTeam);
@@ -333,6 +347,9 @@ public:
                 if (Player* player = ObjectAccessor::FindPlayer(guid))
                     if (sCFBG->IsPlayerFake(player))
                         sCFBG->ClearFakePlayer(player);
+
+        // Lock is per-war: drop assignments so the next war re-balances.
+        sCFBG->ClearWGWarAssignments();
     }
 };
 

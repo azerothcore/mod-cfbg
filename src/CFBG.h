@@ -136,6 +136,7 @@ public:
 
     inline bool IsEnableSystem() const { return _IsEnableSystem; }
     inline bool IsEnableWGSystem() const { return _IsEnableWGSystem; }
+    inline bool IsEnableWGTeamLock() const { return _IsEnableWGTeamLock; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
@@ -158,6 +159,13 @@ public:
     bool SendRealNameQuery(Player* player);
     bool IsPlayerFake(Player* player);
     FakePlayer const* GetFakePlayer(Player* player) const;
+
+    // Per-war WG team lock, GUID-keyed so it survives leaving the war/zone and
+    // relog. Cleared when the war ends.
+    std::optional<TeamId> GetWGWarAssignment(ObjectGuid guid) const;
+    void SetWGWarAssignment(ObjectGuid guid, TeamId team);
+    void ClearWGWarAssignments();
+
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
 
@@ -203,6 +211,7 @@ private:
     TeamId InviteGroupToBG(GroupQueueInfo* gInfo, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
 
     std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
+    std::unordered_map<ObjectGuid, TeamId> _wgWarAssignmentStore;
     std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
     std::unordered_map<Player*, bool> _forgetInListPlayersStore;
@@ -213,6 +222,7 @@ private:
     // For config
     bool _IsEnableSystem;
     bool _IsEnableWGSystem;
+    bool _IsEnableWGTeamLock;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
     bool _IsEnableBalanceClassLowLevel;

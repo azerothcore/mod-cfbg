@@ -23,6 +23,15 @@
 #                    for the duration of their stay in the zone.
 #       Default: 1
 #
+#   CFBG.Battlefield.TeamLock.Enable
+#       Description: Lock a player to the team they were first assigned for the
+#                    current Wintergrasp war. Prevents re-rolling their faction
+#                    by dropping out of the war and rejoining (also survives
+#                    leaving the zone and relogging). The lock is per-war and
+#                    resets when the war ends. Requires CFBG.Battlefield.Enable = 1.
+#       Default: 1 - (Enabled)
+#                0 - (Disabled)
+#
 #   CFBG.Include.Avg.Ilvl.Enable
 #       Description: Enable check average item level for bg
 #       Default: 0
@@ -80,6 +89,7 @@
 
 CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
+CFBG.Battlefield.TeamLock.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10
