@@ -137,6 +137,7 @@ public:
     inline bool IsEnableSystem() const { return _IsEnableSystem; }
     inline bool IsEnableWGSystem() const { return _IsEnableWGSystem; }
     inline bool IsEnableWGTeamLock() const { return _IsEnableWGTeamLock; }
+    inline bool IsEnableWGReapplyOnResurrect() const { return _IsEnableWGReapplyOnResurrect; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
@@ -174,6 +175,7 @@ public:
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
     void ClearFakePlayer(Player* player);
+    void ReapplyFakePlayer(Player* player);
     void DoForgetPlayersInList(Player* player);
     void FitPlayerInTeam(Player* player, bool action, Battleground* bg);
     void DoForgetPlayersInBG(Player* player, Battleground* bg);
@@ -223,6 +225,7 @@ private:
     bool _IsEnableSystem;
     bool _IsEnableWGSystem;
     bool _IsEnableWGTeamLock;
+    bool _IsEnableWGReapplyOnResurrect;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
     bool _IsEnableBalanceClassLowLevel;

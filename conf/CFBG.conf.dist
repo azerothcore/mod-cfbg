@@ -32,6 +32,14 @@
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
 #
+#   CFBG.Battlefield.ReapplyOnResurrect.Enable
+#       Description: Re-apply a cross-faction player's assigned race/faction/morph
+#                    when they resurrect inside Wintergrasp, so the ghost->alive
+#                    transition does not revert them to their native faction.
+#                    Requires CFBG.Battlefield.Enable = 1.
+#       Default: 1 - (Enabled)
+#                0 - (Disabled)
+#
 #   CFBG.Include.Avg.Ilvl.Enable
 #       Description: Enable check average item level for bg
 #       Default: 0
@@ -90,6 +98,7 @@
 CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
 CFBG.Battlefield.TeamLock.Enable = 1
+CFBG.Battlefield.ReapplyOnResurrect.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10

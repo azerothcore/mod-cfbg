@@ -152,6 +152,7 @@ void CFBG::LoadConfig()
 
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
+    _IsEnableWGReapplyOnResurrect = sConfigMgr->GetOption<bool>("CFBG.Battlefield.ReapplyOnResurrect.Enable", true);
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
@@ -592,6 +593,20 @@ void CFBG::ClearFakePlayer(Player* player)
     player->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_FRIENDLY, false);
 
     _fakePlayerStore.erase(player);
+}
+
+void CFBG::ReapplyFakePlayer(Player* player)
+{
+    FakePlayer const* info = GetFakePlayer(player);
+    if (!info)
+        return;
+
+    // Re-push the stored fake values after a resurrect so the assigned faction
+    // and morph survive the ghost->alive transition.
+    player->setRace(info->FakeRace);
+    SetFactionForRace(player, info->FakeRace, info->FakeTeamID);
+    player->SetDisplayId(info->FakeMorph);
+    player->SetNativeDisplayId(info->FakeMorph);
 }
 
 bool CFBG::IsPlayerFake(Player* player)
