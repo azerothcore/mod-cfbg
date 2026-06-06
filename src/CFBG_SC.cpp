@@ -133,7 +133,12 @@ public:
         // and do not need to be handled here.
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
         if (bf && bf->GetTypeId() == BATTLEFIELD_WG && !bf->IsWarTime())
+        {
+            auto trace = bf->Trace("CFBG_Player::OnPlayerLogout::ClearFakePlayer");
+            trace.ArgPlayer(player);
+
             sCFBG->ClearFakePlayer(player);
+        }
     }
 
     // Fires after Player::UpdateZone has finished all Battlefield/OutdoorPvP/WorldState
@@ -230,6 +235,11 @@ public:
         if (!bf || bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
+        {
+            auto trace = bf->Trace("CFBG_Player::OnPlayerResurrect::ReapplyFakePlayer");
+            trace.ArgPlayer(player);
+        }
+
         sCFBG->ReapplyFakePlayer(player);
     }
 
@@ -269,17 +279,38 @@ public:
 
     void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
     {
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::Begin");
+            trace.ArgPlayer(player);
+            trace.Arg("fake", sCFBG->IsPlayerFake(player));
+        }
+
         if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::ReturnDisabled");
+            trace.ArgPlayer(player);
             return;
+        }
 
         if (bf->GetTypeId() != BATTLEFIELD_WG)
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::ReturnNotWintergrasp");
+            trace.Arg("battlefieldType", bf->GetTypeId());
+            trace.ArgPlayer(player);
             return;
+        }
 
         if (sCFBG->IsPlayerFake(player))
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::ReturnAlreadyFake");
+            trace.ArgPlayer(player);
             return;
+        }
 
         TeamId realTeam     = player->GetTeamId(true);
         TeamId assignedTeam = realTeam;
+        uint32 allianceCount = 0;
+        uint32 hordeCount = 0;
 
         // Reuse the team locked earlier this war so rejoining keeps the same
         // side instead of re-rolling the balance.
@@ -296,8 +327,8 @@ public:
             // parallel bucket we used to maintain and removes the divergence path
             // where AddOrSetPlayerToCorrectBfGroup rejects the join after the
             // hook has already mutated module state.
-            uint32 allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
-            uint32 hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
+            allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
+            hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
 
             if (realTeam == TEAM_ALLIANCE && allianceCount > hordeCount)
                 assignedTeam = TEAM_HORDE;
@@ -308,8 +339,25 @@ public:
                 sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);
         }
 
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::Assign");
+            trace.ArgPlayer(player);
+            trace.Arg("teamLockEnabled", sCFBG->IsEnableWGTeamLock());
+            trace.Arg("locked", locked.has_value());
+            trace.Arg("allianceCount", allianceCount);
+            trace.Arg("hordeCount", hordeCount);
+            trace.Arg("realTeam", uint32(realTeam));
+            trace.Arg("assignedTeam", uint32(assignedTeam));
+        }
+
         if (assignedTeam != realTeam)
             sCFBG->SetFakeRaceAndMorphForBF(player, assignedTeam);
+
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldPlayerJoinWar::End");
+            trace.ArgPlayer(player);
+            trace.Arg("fake", sCFBG->IsPlayerFake(player));
+        }
     }
 
     void OnBattlefieldPlayerKill(Battlefield* bf, Player* killer, Player* victim) override
@@ -356,6 +404,8 @@ public:
         if (bf->GetTypeId() != BATTLEFIELD_WG)
             return;
 
+        uint32 clearedFakePlayers = 0;
+
         // Hook fires before OnBattleEnd clears PlayersInWar, so each side's
         // war set still reflects who was actively fighting. ClearFakePlayer
         // is a no-op for unfaked players, so iterating GUIDs that may or may
@@ -364,7 +414,18 @@ public:
             for (ObjectGuid const& guid : bf->GetPlayersInWarSet(static_cast<TeamId>(team)))
                 if (Player* player = ObjectAccessor::FindPlayer(guid))
                     if (sCFBG->IsPlayerFake(player))
+                    {
                         sCFBG->ClearFakePlayer(player);
+                        ++clearedFakePlayers;
+                    }
+
+        {
+            auto trace = bf->Trace("CFBG_Battlefield::OnBattlefieldWarEnd");
+            trace.Arg("allianceCount", uint32(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size()));
+            trace.Arg("hordeCount", uint32(bf->GetPlayersInWarSet(TEAM_HORDE).size()));
+            trace.Arg("clearedFakePlayers", clearedFakePlayers);
+            trace.Arg("teamLockEnabled", sCFBG->IsEnableWGTeamLock());
+        }
 
         // Lock is per-war: drop assignments so the next war re-balances.
         sCFBG->ClearWGWarAssignments();
