@@ -77,9 +77,11 @@
 #                     1 - (Enabled. Get even teams.)
 #
 #   CFBG.EvenTeams.MaxPlayersThreshold
-#       Description: team member quantity until the EvenTeams rule is valid
-#       Default: 5 - (Quantity of players per team after the EvenTeams rule will be ignored)
-#                0 - (No treshold)
+#       Description: Per-team player count at which the EvenTeams rule stops being
+#                    enforced. While each team is below this size, teams are kept
+#                    strictly even (N vs N) and any surplus player waits in queue.
+#       Default: 0 - (EvenTeams enforced for all match sizes, no upper limit)
+#                >0 - (Once both teams reach this size, one team may gain an extra player)
 #
 #   CFBG.RandomRaceSelection
 #       Description: allows players to choose the race they will be morphed into when joining battlegrounds as the opposite team.
@@ -107,7 +109,7 @@ CFBG.BalancedTeams.Class.LevelDiff = 2
 CFBG.Include.Avg.Ilvl.Enable = 0
 CFBG.Players.Count.In.Group = 3
 CFBG.EvenTeams.Enabled = 0
-CFBG.EvenTeams.MaxPlayersThreshold = 5
+CFBG.EvenTeams.MaxPlayersThreshold = 0
 CFBG.ResetCooldowns = 0
 CFBG.Show.PlayerName = 0
 CFBG.RandomRaceSelection = 1
