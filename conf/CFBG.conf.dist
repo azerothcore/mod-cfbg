@@ -32,6 +32,16 @@
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
 #
+#   CFBG.Battlefield.NativePriority.Enable
+#       Description: When assigning teams for a Wintergrasp war, keep the minority
+#                    faction entirely on its native side and morph only the
+#                    majority's surplus to even the teams. The majority fills its
+#                    fair share native in invite-accept order, so the players moved
+#                    are the last to commit. Disable to fall back to the per-join
+#                    greedy balance. Requires CFBG.Battlefield.Enable = 1.
+#       Default: 1 - (Enabled)
+#                0 - (Disabled, greedy per-join balance)
+#
 #   CFBG.Battlefield.ReapplyOnResurrect.Enable
 #       Description: Re-apply a cross-faction player's assigned race/faction/morph
 #                    when they resurrect inside Wintergrasp, so the ghost->alive
@@ -100,6 +110,7 @@
 CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
 CFBG.Battlefield.TeamLock.Enable = 1
+CFBG.Battlefield.NativePriority.Enable = 1
 CFBG.Battlefield.ReapplyOnResurrect.Enable = 1
 CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0

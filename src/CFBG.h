@@ -137,6 +137,7 @@ public:
     inline bool IsEnableSystem() const { return _IsEnableSystem; }
     inline bool IsEnableWGSystem() const { return _IsEnableWGSystem; }
     inline bool IsEnableWGTeamLock() const { return _IsEnableWGTeamLock; }
+    inline bool IsEnableWGNativePriority() const { return _IsEnableWGNativePriority; }
     inline bool IsEnableWGReapplyOnResurrect() const { return _IsEnableWGReapplyOnResurrect; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
@@ -166,6 +167,11 @@ public:
     std::optional<TeamId> GetWGWarAssignment(ObjectGuid guid) const;
     void SetWGWarAssignment(ObjectGuid guid, TeamId team);
     void ClearWGWarAssignments();
+
+    // Native-priority WG balancing: keep the minority native, flip only the
+    // majority's surplus (latest accepters). Census captured on the first call
+    // of a war, reset in ClearWGWarAssignments.
+    TeamId ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited);
 
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
@@ -214,6 +220,12 @@ private:
 
     std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
     std::unordered_map<ObjectGuid, TeamId> _wgWarAssignmentStore;
+
+    // Per-war native census for ResolveWGWarTeam, reset in ClearWGWarAssignments.
+    bool   _wgCensusValid        = false;
+    TeamId _wgMajorityTeam       = TEAM_ALLIANCE;
+    uint32 _wgMajorityFairShare  = 0;
+    uint32 _wgMajorityNativeKept = 0;
     std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
     std::unordered_map<Player*, bool> _forgetInListPlayersStore;
@@ -225,6 +237,7 @@ private:
     bool _IsEnableSystem;
     bool _IsEnableWGSystem;
     bool _IsEnableWGTeamLock;
+    bool _IsEnableWGNativePriority;
     bool _IsEnableWGReapplyOnResurrect;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
