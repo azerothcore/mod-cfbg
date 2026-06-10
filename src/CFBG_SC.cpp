@@ -289,13 +289,22 @@ public:
 
         if (locked)
             assignedTeam = *locked;
+        else if (sCFBG->IsEnableWGNativePriority())
+        {
+            // Invited maps still hold the full native war population here:
+            // core erases each accepter from InvitedPlayers only after this hook.
+            uint32 allianceInvited = static_cast<uint32>(bf->GetInvitedPlayersMap(TEAM_ALLIANCE).size());
+            uint32 hordeInvited    = static_cast<uint32>(bf->GetInvitedPlayersMap(TEAM_HORDE).size());
+
+            assignedTeam = sCFBG->ResolveWGWarTeam(player, allianceInvited, hordeInvited);
+
+            if (sCFBG->IsEnableWGTeamLock())
+                sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);
+        }
         else
         {
-            // Hook fires before core's PlayersInWar.insert, so the candidate is
-            // counted in neither side here. Reading the live core set drops the
-            // parallel bucket we used to maintain and removes the divergence path
-            // where AddOrSetPlayerToCorrectBfGroup rejects the join after the
-            // hook has already mutated module state.
+            // Greedy fallback: candidate is in neither set yet (hook fires
+            // before PlayersInWar.insert), so balance off the live core counts.
             uint32 allianceCount = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
             uint32 hordeCount    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
 

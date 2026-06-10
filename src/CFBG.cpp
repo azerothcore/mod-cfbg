@@ -151,6 +151,7 @@ void CFBG::LoadConfig()
 
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
+    _IsEnableWGNativePriority = sConfigMgr->GetOption<bool>("CFBG.Battlefield.NativePriority.Enable", true);
     _IsEnableWGReapplyOnResurrect = sConfigMgr->GetOption<bool>("CFBG.Battlefield.ReapplyOnResurrect.Enable", true);
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
@@ -635,6 +636,37 @@ void CFBG::SetWGWarAssignment(ObjectGuid guid, TeamId team)
 void CFBG::ClearWGWarAssignments()
 {
     _wgWarAssignmentStore.clear();
+    _wgCensusValid = false;
+    _wgMajorityNativeKept = 0;
+}
+
+TeamId CFBG::ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited)
+{
+    // Capture the native split once: at the first join PlayersInWar is empty
+    // and nobody is faked, so the invited counts are the true native census.
+    if (!_wgCensusValid)
+    {
+        _wgMajorityTeam = (nativeAllianceInvited >= nativeHordeInvited) ? TEAM_ALLIANCE : TEAM_HORDE;
+        _wgMajorityFairShare = (nativeAllianceInvited + nativeHordeInvited) / 2;
+        _wgMajorityNativeKept = 0;
+        _wgCensusValid = true;
+    }
+
+    TeamId realTeam = player->GetTeamId(true);
+
+    // Minority stays native.
+    if (realTeam != _wgMajorityTeam)
+        return realTeam;
+
+    // Majority keeps its fair share native in accept order; the rest (latest
+    // to commit) flip.
+    if (_wgMajorityNativeKept < _wgMajorityFairShare)
+    {
+        ++_wgMajorityNativeKept;
+        return realTeam;
+    }
+
+    return (_wgMajorityTeam == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
 }
 
 void CFBG::DoForgetPlayersInList(Player* player)
