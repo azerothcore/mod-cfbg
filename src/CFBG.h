@@ -91,21 +91,6 @@ struct CrossFactionGroupInfo
     CrossFactionGroupInfo(CrossFactionGroupInfo&&) = delete;
 };
 
-struct CrossFactionQueueInfo
-{
-    explicit CrossFactionQueueInfo(BattlegroundQueue* bgQueue);
-
-    TeamId GetLowerTeamIdInBG(GroupQueueInfo* groupInfo);
-
-    std::array<uint32, 2> PlayersCount{};
-    std::array<uint32, 2> SumAverageItemLevel{};
-    std::array<uint32, 2> SumPlayerLevel{};
-
-private:
-    CrossFactionQueueInfo() = delete;
-    CrossFactionQueueInfo(CrossFactionQueueInfo&&) = delete;
-};
-
 // Precomputed numeric aggregates fed to CFBG::ResolveBalancedTeam, the single
 // shared team-decision cascade. Each caller (formation / reinforcement) builds
 // one from its own data source (queue tallies or live BG counts).
@@ -128,7 +113,6 @@ class CFBG
 public:
     using RandomSkinInfo = std::pair<uint8/*race*/, uint32/*morph*/>;
     using GroupsList = std::vector<GroupQueueInfo*>;
-    using SameCountGroupsList = std::vector<std::pair<GroupQueueInfo*, GroupsList>>;
 
     static CFBG* instance();
 
@@ -155,7 +139,6 @@ public:
     uint32 GetBGTeamAverageItemLevel(Battleground* bg, TeamId team);
     uint32 GetBGTeamSumPlayerLevel(Battleground* bg, TeamId team);
 
-    TeamId GetLowerTeamIdInBG(Battleground* bg, BattlegroundQueue* bgQueue, GroupQueueInfo* groupInfo);
     TeamId ResolveBalancedTeam(TeamBalanceContext const& ctx);
 
     bool SendRealNameQuery(Player* player);
@@ -215,8 +198,13 @@ private:
 
     uint32 GetMorphFromRace(uint8 race, uint8 gender);
 
-    void InviteSameCountGroups(GroupsList& groups, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
-    TeamId InviteGroupToBG(GroupQueueInfo* gInfo, BattlegroundQueue* bgQueue, uint32 maxAli, uint32 maxHorde, Battleground* bg = nullptr);
+    // Projected head counts per team: in-BG players plus invited-not-yet-entered
+    // ones. bg == nullptr (formation) yields zeros.
+    std::array<uint32, 2> GetProjectedBaseCounts(Battleground* bg, BattlegroundQueue* queue, BattlegroundBracketId bracketId) const;
+
+    // Unified stage->repair->invite selection (formation + reinforcement): fills
+    // m_SelectionPools keeping projected sizes within allowedDiff, premades atomic.
+    void SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam, uint32 allowedDiff);
 
     std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
     std::unordered_map<ObjectGuid, TeamId> _wgWarAssignmentStore;
