@@ -160,6 +160,9 @@ public:
     bool IsPlayingNative(Player* player);
 
     void ValidatePlayerForBG(Battleground* bg, Player* player);
+    // Forces race/faction/m_team/fake-store into agreement with the player's
+    // assigned BG team (GetBgTeamId()); idempotent and self-correcting.
+    void EnforceBGTeamConsistency(Player* player);
     void SetFakeRaceAndMorph(Player* player);
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);

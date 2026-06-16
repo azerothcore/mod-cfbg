@@ -274,21 +274,18 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player)
 
     BalanceTeamsOnEntry(bg, player);
 
-    TeamId teamId{ player->GetBgTeamId() };
+    TeamId const assigned = player->GetBgTeamId();
 
-    if (player->GetTeamId(true) == teamId)
-        return;
+    // Keep bgTeamId authoritative (also covers the TEAM_NEUTRAL bootstrap where GetBgTeamId() falls back to m_team)
+    player->GetBGData().bgTeamId = assigned;
 
-    BGData& bgdata = player->GetBGData();
+    EnforceBGTeamConsistency(player);
 
-    if (bgdata.bgTeamId != teamId)
-        bgdata.bgTeamId = teamId;
-
-    SetFakeRaceAndMorph(player);
-
-    if (bg->GetMapId() == MapAlteracValley)
+    // AV forced reactions apply only to a cross-faction (faked) player;
+    // a native player already holds the correct Frostwolf/Stormpike standings.
+    if (!IsPlayingNative(player) && bg->GetMapId() == MapAlteracValley)
     {
-        if (teamId == TEAM_HORDE)
+        if (assigned == TEAM_HORDE)
         {
             player->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, true);
             player->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_HOSTILE, true);
@@ -301,6 +298,38 @@ void CFBG::ValidatePlayerForBG(Battleground* bg, Player* player)
 
         player->GetReputationMgr().SendForceReactions();
     }
+}
+
+void CFBG::EnforceBGTeamConsistency(Player* player)
+{
+    if (!player || !player->InBattleground())
+        return;
+
+    Battleground* bg = player->GetBattleground();
+    if (!bg || bg->isArena())
+        return;
+
+    TeamId const assigned = player->GetBgTeamId();
+
+    // Native: must not carry a fake.
+    if (player->GetTeamId(true) == assigned)
+    {
+        if (IsPlayerFake(player))
+            ClearFakePlayer(player);
+        return;
+    }
+
+    // Cross-faction: must be faked to `assigned`.
+    FakePlayer const* info = GetFakePlayer(player);
+    if (!info)
+        SetFakeRaceAndMorph(player);            // not faked yet -> apply
+    else if (info->FakeTeamID != assigned)
+    {
+        ClearFakePlayer(player);                // stale wrong-team fake -> redo
+        SetFakeRaceAndMorph(player);
+    }
+    else
+        ReapplyFakePlayer(player);              // correct side -> re-push reset values
 }
 
 void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)

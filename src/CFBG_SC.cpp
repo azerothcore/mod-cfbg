@@ -218,7 +218,18 @@ public:
 
     void OnPlayerResurrect(Player* player, float /*restorePercent*/, bool& /*applySickness*/) override
     {
-        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem() || !sCFBG->IsEnableWGReapplyOnResurrect())
+        if (!sCFBG->IsEnableSystem())
+            return;
+
+        // Battleground fakes are not re-pushed elsewhere on resurrect;
+        // re-assert assigned-team consistency after the ghost->alive transition.
+        if (player->InBattleground())
+        {
+            sCFBG->EnforceBGTeamConsistency(player);
+            return;
+        }
+
+        if (!sCFBG->IsEnableWGSystem() || !sCFBG->IsEnableWGReapplyOnResurrect())
             return;
 
         if (!sCFBG->IsPlayerFake(player))
