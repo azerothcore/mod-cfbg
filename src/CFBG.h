@@ -13,6 +13,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Player;
@@ -138,6 +139,7 @@ public:
     inline bool IsEnableWGSystem() const { return _IsEnableWGSystem; }
     inline bool IsEnableWGTeamLock() const { return _IsEnableWGTeamLock; }
     inline bool IsEnableWGReapplyOnResurrect() const { return _IsEnableWGReapplyOnResurrect; }
+    inline bool IsWGSkipClass(uint8 playerClass) const { return _wgSkipClasses.count(playerClass) > 0; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
@@ -226,6 +228,7 @@ private:
     bool _IsEnableWGSystem;
     bool _IsEnableWGTeamLock;
     bool _IsEnableWGReapplyOnResurrect;
+    std::unordered_set<uint8> _wgSkipClasses;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
     bool _IsEnableBalanceClassLowLevel;

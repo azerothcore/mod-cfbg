@@ -40,6 +40,16 @@
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
 #
+#   CFBG.Battlefield.SkipClasses
+#       Description: Comma-separated list of class IDs excluded from Wintergrasp
+#                    cross-faction selection. Players of these classes always keep
+#                    their native faction and are never morphed/reassigned.
+#                    Class IDs: 1 Warrior, 2 Paladin, 3 Hunter, 4 Rogue, 5 Priest,
+#                    6 Death Knight, 7 Shaman, 8 Mage, 9 Warlock, 11 Druid.
+#                    Requires CFBG.Battlefield.Enable = 1.
+#       Example: "2,7" - (Paladins and Shamans stay native)
+#       Default: "" - (no class skipped)
+#
 #   CFBG.Include.Avg.Ilvl.Enable
 #       Description: Enable check average item level for bg
 #       Default: 0
@@ -101,6 +111,7 @@ CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
 CFBG.Battlefield.TeamLock.Enable = 1
 CFBG.Battlefield.ReapplyOnResurrect.Enable = 1
+CFBG.Battlefield.SkipClasses = ""
 CFBG.BalancedTeams = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10

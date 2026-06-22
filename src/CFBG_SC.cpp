@@ -278,6 +278,9 @@ public:
         if (sCFBG->IsPlayerFake(player))
             return;
 
+        if (sCFBG->IsWGSkipClass(player->getClass()))
+            return;
+
         TeamId realTeam     = player->GetTeamId(true);
         TeamId assignedTeam = realTeam;
 

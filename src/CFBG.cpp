@@ -14,6 +14,8 @@
 #include "Opcodes.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
+#include "StringConvert.h"
+#include "Tokenize.h"
 #include "GameTime.h"
 #include "Player.h"
 #include "WorldSessionMgr.h"
@@ -152,6 +154,14 @@ void CFBG::LoadConfig()
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
     _IsEnableWGReapplyOnResurrect = sConfigMgr->GetOption<bool>("CFBG.Battlefield.ReapplyOnResurrect.Enable", true);
+
+    _wgSkipClasses.clear();
+    for (auto const& token : Acore::Tokenize(sConfigMgr->GetOption<std::string>("CFBG.Battlefield.SkipClasses", ""), ',', false))
+    {
+        if (Optional<uint8> playerClass = Acore::StringTo<uint8>(token))
+            _wgSkipClasses.insert(*playerClass);
+    }
+
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
