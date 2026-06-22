@@ -102,7 +102,8 @@ void CFBG::LoadConfig()
     _IsEnableWGReapplyOnResurrect = sConfigMgr->GetOption<bool>("CFBG.Battlefield.ReapplyOnResurrect.Enable", true);
 
     _wgSkipClasses.clear();
-    for (auto const& token : Acore::Tokenize(sConfigMgr->GetOption<std::string>("CFBG.Battlefield.SkipClasses", ""), ',', false))
+    std::string const skipClasses = sConfigMgr->GetOption<std::string>("CFBG.Battlefield.SkipClasses", "");
+    for (auto const& token : Acore::Tokenize(skipClasses, ',', false))
     {
         if (Optional<uint8> playerClass = Acore::StringTo<uint8>(token))
             _wgSkipClasses.insert(*playerClass);
