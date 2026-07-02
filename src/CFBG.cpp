@@ -537,8 +537,12 @@ void CFBG::ClearFakePlayer(Player* player)
         return;
 
     player->setRace(_fakePlayerStore[player].RealRace);
-    player->SetDisplayId(_fakePlayerStore[player].RealMorph);
+    // Restore via the aura-resolution path, not the entry-time snapshot: a
+    // player who dropped a shapeshift/transform mid-BG must get the real model
+    // back, one still in the form keeps the form model. RestoreDisplayId's
+    // no-aura fallback is the native display, so set that first.
     player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
+    player->RestoreDisplayId();
     SetFactionForRace(player, _fakePlayerStore[player].RealRace, _fakePlayerStore[player].RealTeamID);
 
     // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
