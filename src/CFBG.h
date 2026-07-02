@@ -229,7 +229,9 @@ private:
     std::array<CFBGRaceInfo, 9> _raceInfo{};
 
     // For config
-    bool _IsEnableSystem;
+    // = false so LoadConfig's disable-transition read is well-defined on the
+    // very first load.
+    bool _IsEnableSystem = false;
     bool _IsEnableWGSystem;
     bool _IsEnableWGTeamLock;
     bool _IsEnableWGNativePriority;

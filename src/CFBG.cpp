@@ -11,6 +11,7 @@
 #include "Config.h"
 #include "Containers.h"
 #include "Language.h"
+#include "ObjectAccessor.h"
 #include "Opcodes.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
@@ -92,9 +93,30 @@ CFBG* CFBG::instance()
 
 void CFBG::LoadConfig()
 {
+    bool const wasEnabled = _IsEnableSystem;
     _IsEnableSystem = sConfigMgr->GetOption<bool>("CFBG.Enable", false);
     if (!_IsEnableSystem)
+    {
+        // Live-disable via .reload: restore every online faked player and drop
+        // all Player*-keyed state; otherwise they stay cross-faction until
+        // relog and the stale keys can corrupt a later Player reusing the
+        // same address.
+        if (wasEnabled)
+        {
+            for (auto const& [guid, player] : ObjectAccessor::GetPlayers())
+                if (IsPlayerFake(player))
+                    ClearFakePlayer(player);
+
+            // Anything left is a leaked entry whose Player was already
+            // deleted; drop it without dereferencing the key.
+            _fakePlayerStore.clear();
+            _fakeNamePlayersStore.clear();
+            _forgetBGPlayersStore.clear();
+            _forgetInListPlayersStore.clear();
+        }
+
         return;
+    }
 
     _IsEnableWGSystem = sConfigMgr->GetOption<bool>("CFBG.Battlefield.Enable", true);
     _IsEnableWGTeamLock = sConfigMgr->GetOption<bool>("CFBG.Battlefield.TeamLock.Enable", true);
