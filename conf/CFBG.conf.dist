@@ -61,7 +61,11 @@
 #       Default: "" - (no class skipped)
 #
 #   CFBG.Include.Avg.Ilvl.Enable
-#       Description: Enable check average item level for bg
+#       Description: Enable check average item level for bg.
+#                    Only takes effect when CFBG.BalancedTeams = 0. When
+#                    CFBG.BalancedTeams = 1 the average item level is always
+#                    consulted as an intrinsic tiebreaker of the balancing
+#                    cascade, regardless of this setting.
 #       Default: 0
 #
 #   CFBG.BalancedTeams
