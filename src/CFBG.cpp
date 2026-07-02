@@ -744,6 +744,13 @@ std::array<uint32, 2> CFBG::GetProjectedBaseCounts(Battleground* bg, Battlegroun
         if (gInfo->IsInvitedToBGInstanceGUID == bg->GetInstanceID())
             counts[gInfo->teamId] += gInfo->Players.size();
 
+    // A player between accept and worldport ack is in neither term above (the
+    // accept deleted their ginfo; AddPlayer has not run yet). The BG's invited
+    // ledger still holds every reservation, so clamp up to it; max() degrades
+    // gracefully if either register is skewed.
+    counts[TEAM_ALLIANCE] = std::max(counts[TEAM_ALLIANCE], bg->GetInvitedCount(TEAM_ALLIANCE));
+    counts[TEAM_HORDE] = std::max(counts[TEAM_HORDE], bg->GetInvitedCount(TEAM_HORDE));
+
     return counts;
 }
 
