@@ -5,6 +5,7 @@
  */
 
 #include "CFBG.h"
+#include "BattlegroundMgr.h"
 #include "BattlegroundQueue.h"
 #include "BattlegroundUtils.h"
 #include "Chat.h"
@@ -896,7 +897,13 @@ bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketI
     if (!IsEnableSystem())
         return false;
 
-    SelectBalancedGroups(queue, bracket_id, nullptr, maxPlayers, IsEnableEvenTeams() ? 0 : 1);
+    bool isTesting = sBattlegroundMgr->isTesting();
+    SelectBalancedGroups(queue, bracket_id, nullptr, maxPlayers, isTesting ? maxPlayers : (IsEnableEvenTeams() ? 0 : 1));
+
+    // Mirror core CanStartMatch's testing arm: under .debug bg a single
+    // non-empty pool is enough to start (1v0), so skip the pool reset.
+    if (isTesting && (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() || queue->m_SelectionPools[TEAM_HORDE].GetPlayerCount()))
+        return true;
 
     // Return when we're ready to start a BG, if we're in startup process
     if (queue->m_SelectionPools[TEAM_ALLIANCE].GetPlayerCount() >= minPlayers &&
