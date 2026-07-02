@@ -376,10 +376,19 @@ void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)
 
     TeamId provisional = player->GetBgTeamId();
 
-    // Live head counts correctly EXCLUDE the entering player (counted later in
-    // Battleground::AddPlayer).
-    int32 countA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
-    int32 countH = bg->GetPlayersCountByTeam(TEAM_HORDE);
+    // The invited ledger (entered + accepted-in-flight + pending-invited) sees
+    // reservations that live head counts miss while invitees are still porting
+    // (issue #172: a solo flipped onto a porting premade's side -> 1v3).
+    int32 countA = bg->GetInvitedCount(TEAM_ALLIANCE);
+    int32 countH = bg->GetInvitedCount(TEAM_HORDE);
+
+    // Accept does not release the reservation (RemovePlayer with
+    // decreaseInvitedCount=false), so the entrant is still ledgered on the
+    // provisional side: exclude them from the comparison.
+    if (provisional == TEAM_ALLIANCE)
+        --countA;
+    else
+        --countH;
 
     // Sides already balanced: keep the provisional team, no morph / count churn.
     if (countA == countH)

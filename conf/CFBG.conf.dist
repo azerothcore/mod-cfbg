@@ -110,10 +110,11 @@
 #
 #   CFBG.BalanceTeamsOnEntry.Enabled
 #       Description: When a solo player enters a battleground while the teams are
-#                    uneven, move them to the smaller team according to the live
-#                    in-BG head counts at that moment. If the teams are already
-#                    even they keep the team chosen at invite time, and grouped
-#                    players are never moved.
+#                    uneven, move them to the smaller team according to the
+#                    invited counts at that moment (players inside plus accepted
+#                    or pending invitees still on their way). If the teams are
+#                    already even they keep the team chosen at invite time, and
+#                    grouped players are never moved.
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
 
