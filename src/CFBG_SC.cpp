@@ -273,10 +273,40 @@ class CFBG_Battlefield : public BattlefieldScript
 {
 public:
     CFBG_Battlefield() : BattlefieldScript("CFBG_Battlefield", {
+        BATTLEFIELDHOOK_ON_PLAYER_ENTER_ZONE,
         BATTLEFIELDHOOK_ON_PLAYER_JOIN_WAR,
         BATTLEFIELDHOOK_ON_WAR_END,
         BATTLEFIELDHOOK_ON_PLAYER_KILL
     }) {}
+
+    // Core fires this before any team-keyed container is consulted (war vacancy
+    // gate, kick/invite bookings, Players[] insert all key on GetTeamId()).
+    // Re-faking a war-locked flipped player here makes those key on the
+    // assigned side; otherwise a returning player is judged on his real team,
+    // risking a wrongful 10s "battlefield full" kick and side overfill.
+    void OnBattlefieldPlayerEnterZone(Battlefield* bf, Player* player) override
+    {
+        if (!sCFBG->IsEnableSystem() || !sCFBG->IsEnableWGSystem())
+            return;
+
+        if (bf->GetTypeId() != BATTLEFIELD_WG)
+            return;
+
+        if (!bf->IsWarTime() || !sCFBG->IsEnableWGTeamLock())
+            return;
+
+        if (sCFBG->IsPlayerFake(player))
+            return;
+
+        // Skip-class players normally have no stored assignment; the guard also
+        // covers a lock stored before a mid-war SkipClasses reload.
+        if (sCFBG->IsWGSkipClass(player->getClass()))
+            return;
+
+        std::optional<TeamId> locked = sCFBG->GetWGWarAssignment(player->GetGUID());
+        if (locked && *locked != player->GetTeamId(true))
+            sCFBG->SetFakeRaceAndMorphForBF(player, *locked);
+    }
 
     void OnBattlefieldPlayerJoinWar(Battlefield* bf, Player* player) override
     {
@@ -318,6 +348,10 @@ public:
 
             assignedTeam = sCFBG->ResolveWGWarTeam(player, allianceInvited, hordeInvited, allianceInWar, hordeInWar);
 
+            // Never flip into a side already at Wintergrasp.PlayerMax.
+            if (assignedTeam != realTeam && !bf->HasWarVacancy(assignedTeam))
+                assignedTeam = realTeam;
+
             if (sCFBG->IsEnableWGTeamLock())
                 sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);
         }
@@ -332,6 +366,10 @@ public:
                 assignedTeam = TEAM_HORDE;
             else if (realTeam == TEAM_HORDE && hordeCount > allianceCount)
                 assignedTeam = TEAM_ALLIANCE;
+
+            // Never flip into a side already at Wintergrasp.PlayerMax.
+            if (assignedTeam != realTeam && !bf->HasWarVacancy(assignedTeam))
+                assignedTeam = realTeam;
 
             if (sCFBG->IsEnableWGTeamLock())
                 sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);

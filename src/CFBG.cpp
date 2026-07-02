@@ -588,6 +588,15 @@ void CFBG::SetWGWarAssignment(ObjectGuid guid, TeamId team)
 
 void CFBG::ClearWGWarAssignments()
 {
+    // A player re-faked at zone entry whose invite was still pending at war
+    // end is in no PlayersInWar set, so the war-end unfake loop misses him;
+    // sweep the assignments so no fake survives the war. Players inside a
+    // battleground are skipped: their fake belongs to the BG lifecycle.
+    for (auto const& [guid, teamId] : _wgWarAssignmentStore)
+        if (Player* player = ObjectAccessor::FindPlayer(guid))
+            if (!player->InBattleground() && IsPlayerFake(player))
+                ClearFakePlayer(player);
+
     _wgWarAssignmentStore.clear();
     _wgCensusValid = false;
     _wgMajorityNativeKept = 0;
