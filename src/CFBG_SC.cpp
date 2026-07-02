@@ -218,6 +218,11 @@ public:
         if (type == CHAT_MSG_ADDON || type == CHAT_MSG_SYSTEM)
             return;
 
+        // keep proximity chat in the native language so enemies get
+        // the normal cross-faction scramble instead of readable text
+        if (type == CHAT_MSG_SAY || type == CHAT_MSG_YELL)
+            return;
+
         // to gm lang
         lang = LANG_UNIVERSAL;
     }
