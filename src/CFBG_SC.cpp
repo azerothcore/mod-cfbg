@@ -246,13 +246,19 @@ public:
 
     bool OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool /*incremental*/) override
     {
-        uint32 repGain = player->GetReputation(factionID);
+        if (!sCFBG->IsEnableSystem())
+            return true;
+
         TeamId teamId = player->GetTeamId(true);
 
         if ((factionID == FACTION_FROSTWOLF_CLAN && teamId == TEAM_ALLIANCE) ||
             (factionID == FACTION_STORMPIKE_GUARD && teamId == TEAM_HORDE))
         {
-            uint32 diff = standing - repGain;
+            // Signed arithmetic: a reputation LOSS must arrive as a negative
+            // delta; an unsigned difference would wrap and slam the mirror
+            // faction to the reputation floor.
+            int32 current = player->GetReputationMgr().GetReputation(sFactionStore.LookupEntry(factionID));
+            int32 diff = standing - current;
             player->GetReputationMgr().ModifyReputation(sFactionStore.LookupEntry(teamId == TEAM_ALLIANCE ? FACTION_STORMPIKE_GUARD : FACTION_FROSTWOLF_CLAN), diff);
             return false;
         }
