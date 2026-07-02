@@ -187,15 +187,12 @@ public:
         return true;
     }
 
-    void OnPlayerBeforeUpdate(Player* player, uint32 diff) override
+    void OnPlayerBeforeUpdate(Player* player, uint32 /*diff*/) override
     {
-        if (timeCheck <= diff)
-        {
+        // The flag is set once per BG add (or login into a BG) and cleared
+        // after service, so serving it on the next tick self-rate-limits.
+        if (sCFBG->HasPendingForget(player))
             sCFBG->UpdateForget(player);
-            timeCheck = 10000;
-        }
-        else
-            timeCheck -= diff;
     }
 
     void OnPlayerBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& /*msg*/) override
@@ -274,9 +271,6 @@ public:
 
         return true;
     }
-
-private:
-    uint32 timeCheck = 10000;
 };
 
 // WG constants duplicated here to avoid pulling in BattlefieldWG.h

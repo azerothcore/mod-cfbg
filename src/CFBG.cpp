@@ -650,6 +650,12 @@ bool CFBG::ShouldForgetBGPlayers(Player* player)
     return _forgetBGPlayersStore[player];
 }
 
+bool CFBG::HasPendingForget(Player* player) const
+{
+    auto const itr = _forgetBGPlayersStore.find(player);
+    return itr != _forgetBGPlayersStore.end() && itr->second;
+}
+
 void CFBG::DoForgetPlayersInBG(Player* player, Battleground* bg)
 {
     for (auto const& itr : bg->GetPlayers())

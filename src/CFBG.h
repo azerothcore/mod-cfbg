@@ -172,6 +172,10 @@ public:
     void DoForgetPlayersInBG(Player* player, Battleground* bg);
     void SetForgetBGPlayers(Player* player, bool value);
     bool ShouldForgetBGPlayers(Player* player);
+    // Const, non-inserting flag probe for the per-tick update hook
+    // (ShouldForgetBGPlayers' operator[] would default-insert an entry for
+    // every online player every tick).
+    bool HasPendingForget(Player* player) const;
     void UpdateForget(Player* player);
     void SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
 
