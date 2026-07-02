@@ -6,6 +6,7 @@
 #include "CFBG.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
+#include "Chat.h"
 #include "Group.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
@@ -175,7 +176,12 @@ public:
                 return true;
 
             if (group->isRaidGroup() || group->GetMembersCount() > sCFBG->GetMaxPlayersCountInGroup())
+            {
+                // The client shows only a generic "Join as a group failed.";
+                // name the actual limit so the leader knows what to change.
+                ChatHandler(player->GetSession()).PSendSysMessage("Battleground groups are limited to {} players.", sCFBG->GetMaxPlayersCountInGroup());
                 err = ERR_BATTLEGROUND_JOIN_FAILED;
+            }
 
             return false;
         }
