@@ -593,14 +593,14 @@ void CFBG::ClearWGWarAssignments()
     _wgMajorityNativeKept = 0;
 }
 
-TeamId CFBG::ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited)
+TeamId CFBG::ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited, uint32 allianceInWar, uint32 hordeInWar)
 {
     // Capture the native split once: at the first join PlayersInWar is empty
     // and nobody is faked, so the invited counts are the true native census.
     if (!_wgCensusValid)
     {
         _wgMajorityTeam = (nativeAllianceInvited >= nativeHordeInvited) ? TEAM_ALLIANCE : TEAM_HORDE;
-        _wgMajorityFairShare = (nativeAllianceInvited + nativeHordeInvited) / 2;
+        _wgMajorityFairShare = (nativeAllianceInvited + nativeHordeInvited + 1) / 2;
         _wgMajorityNativeKept = 0;
         _wgCensusValid = true;
     }
@@ -619,7 +619,16 @@ TeamId CFBG::ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint
         return realTeam;
     }
 
-    return (_wgMajorityTeam == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
+    // Past the fair share: flip only when it does not worsen the live balance —
+    // with a sparse census (e.g. 1/0) and trickle joins, unconditional flips
+    // would stack the entire majority onto the other side.
+    uint32 const ownInWar   = (realTeam == TEAM_ALLIANCE) ? allianceInWar : hordeInWar;
+    uint32 const otherInWar = (realTeam == TEAM_ALLIANCE) ? hordeInWar : allianceInWar;
+    if (ownInWar > otherInWar)
+        return (_wgMajorityTeam == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
+
+    ++_wgMajorityNativeKept;
+    return realTeam;
 }
 
 void CFBG::DoForgetPlayersInList(Player* player)

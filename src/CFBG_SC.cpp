@@ -310,7 +310,13 @@ public:
             uint32 allianceInvited = static_cast<uint32>(bf->GetInvitedPlayersMap(TEAM_ALLIANCE).size());
             uint32 hordeInvited    = static_cast<uint32>(bf->GetInvitedPlayersMap(TEAM_HORDE).size());
 
-            assignedTeam = sCFBG->ResolveWGWarTeam(player, allianceInvited, hordeInvited);
+            // Live war counts for the no-worsen flip guard; the candidate is in
+            // neither set yet (hook fires before PlayersInWar.insert). These are
+            // assigned (post-fake) teams, exactly what balance must compare.
+            uint32 allianceInWar = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_ALLIANCE).size());
+            uint32 hordeInWar    = static_cast<uint32>(bf->GetPlayersInWarSet(TEAM_HORDE).size());
+
+            assignedTeam = sCFBG->ResolveWGWarTeam(player, allianceInvited, hordeInvited, allianceInWar, hordeInWar);
 
             if (sCFBG->IsEnableWGTeamLock())
                 sCFBG->SetWGWarAssignment(player->GetGUID(), assignedTeam);

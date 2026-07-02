@@ -154,9 +154,11 @@ public:
     void ClearWGWarAssignments();
 
     // Native-priority WG balancing: keep the minority native, flip only the
-    // majority's surplus (latest accepters). Census captured on the first call
-    // of a war, reset in ClearWGWarAssignments.
-    TeamId ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited);
+    // majority's surplus (latest accepters). The fair share is a ceiling; past
+    // it a majority joiner flips only when the flip does not worsen the live
+    // war counts. Census captured on the first call of a war, reset in
+    // ClearWGWarAssignments.
+    TeamId ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited, uint32 allianceInWar, uint32 hordeInWar);
 
     bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
