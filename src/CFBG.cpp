@@ -327,6 +327,18 @@ void CFBG::EnforceBGTeamConsistency(Player* player)
     {
         if (IsPlayerFake(player))
             ClearFakePlayer(player);
+
+        // A foreign template can outlive its writer on a non-faked native
+        // (e.g. a charm undone after an unfake). Repair it unless a legitimate
+        // writer owns it: GM-on holds FACTION_FRIENDLY; an active MOD_FACTION
+        // aura restores natives correctly on removal.
+        if (!player->IsGameMaster() && !player->HasAuraType(SPELL_AURA_MOD_FACTION))
+        {
+            ChrRacesEntry const* raceEntry = sChrRacesStore.LookupEntry(player->getRace(true));
+            if (raceEntry && player->GetFaction() != raceEntry->FactionID)
+                SetFactionForRace(player, player->getRace(true), player->GetTeamId(true));
+        }
+
         return;
     }
 
