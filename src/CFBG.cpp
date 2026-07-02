@@ -224,11 +224,11 @@ TeamId CFBG::ResolveBalancedTeam(TeamBalanceContext const& ctx)
 
                 if (std::abs(avgLvlAlliance - avgLvlHorde) >= 0.5f)
                     team = avgLvlAlliance < avgLvlHorde ? TEAM_ALLIANCE : TEAM_HORDE;
-                else // it's balanced, so we should only check the ilvl
+                else if (ctx.avgIlvlA != ctx.avgIlvlH) // levels balanced, ilvl breaks the tie; an exact ilvl tie keeps the current pick
                     team = ctx.avgIlvlA < ctx.avgIlvlH ? TEAM_ALLIANCE : TEAM_HORDE;
             }
         }
-        else if (ctx.levelSumA == ctx.levelSumH)
+        else if (ctx.levelSumA == ctx.levelSumH && ctx.avgIlvlA != ctx.avgIlvlH)
         {
             team = ctx.avgIlvlA < ctx.avgIlvlH ? TEAM_ALLIANCE : TEAM_HORDE;
         }
@@ -780,12 +780,6 @@ void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId 
 
         ctx.levelSumA = baseLevelSum[TEAM_ALLIANCE] + stagedLevelSum[TEAM_ALLIANCE];
         ctx.levelSumH = baseLevelSum[TEAM_HORDE] + stagedLevelSum[TEAM_HORDE];
-
-        // Fold the candidate's level sum into its projected side.
-        if (gInfo->teamId == TEAM_ALLIANCE)
-            ctx.levelSumA += cfInfo.SumPlayerLevel;
-        else
-            ctx.levelSumH += cfInfo.SumPlayerLevel;
 
         // ilvl metric: live BG average when reinforcing, staged sums at formation.
         ctx.avgIlvlA = bg ? GetBGTeamAverageItemLevel(bg, TEAM_ALLIANCE) : stagedIlvlSum[TEAM_ALLIANCE];

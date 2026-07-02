@@ -99,7 +99,7 @@ struct TeamBalanceContext
 {
     int32  countA{ 0 };               // head counts, candidate EXCLUDED
     int32  countH{ 0 };
-    uint32 levelSumA{ 0 };            // candidate level ALREADY folded into its side
+    uint32 levelSumA{ 0 };            // level sums, candidate EXCLUDED (like the counts)
     uint32 levelSumH{ 0 };
     uint32 avgIlvlA{ 0 };            // per-team ilvl metric (bg avg OR queue sum)
     uint32 avgIlvlH{ 0 };
