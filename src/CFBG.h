@@ -169,6 +169,7 @@ public:
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
     void ClearFakePlayer(Player* player);
+    void DropFakePlayerRecord(Player* player);
     void ReapplyFakePlayer(Player* player);
     void DoForgetPlayersInList(Player* player);
     void FitPlayerInTeam(Player* player, bool action, Battleground* bg);

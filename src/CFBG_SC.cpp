@@ -126,14 +126,22 @@ public:
         if (!sCFBG->IsEnableSystem() || !sCFBG->IsPlayerFake(player))
             return;
 
-        // Only clear the WG fake state when the battlefield is not actively at
-        // war.  During a running war the player may safely relog and rejoin
-        // their assigned faction, so we leave the fake state intact for that
-        // case.  BG fakes are always cleaned up by OnBattlegroundRemovePlayerAtLeave
-        // and do not need to be handled here.
+        // Only WG fakes are handled here; BG fakes are owned by
+        // OnBattlegroundRemovePlayerAtLeave. Outside a war, fully restore.
+        // During a running war, only drop the Player*-keyed record: relog
+        // constructs a new Player*, so the entry can never serve the rejoin
+        // (Battlefield::TryRejoinAfterLogout re-fakes via the GUID-keyed
+        // _wgWarAssignmentStore) and would dangle. Restoring race/faction here
+        // would flip m_team before Player::RemoveFromWorld and mis-key core's
+        // PlayersInWar erase.
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetZoneId());
-        if (bf && bf->GetTypeId() == BATTLEFIELD_WG && !bf->IsWarTime())
-            sCFBG->ClearFakePlayer(player);
+        if (bf && bf->GetTypeId() == BATTLEFIELD_WG)
+        {
+            if (!bf->IsWarTime())
+                sCFBG->ClearFakePlayer(player);
+            else
+                sCFBG->DropFakePlayerRecord(player);
+        }
     }
 
     // Fires after Player::UpdateZone has finished all Battlefield/OutdoorPvP/WorldState

@@ -548,6 +548,13 @@ void CFBG::ClearFakePlayer(Player* player)
     _fakePlayerStore.erase(player);
 }
 
+// Erase-only: no race/morph/faction/m_team restore. Used at wartime WG logout,
+// where Player::RemoveFromWorld still erases PlayersInWar keyed on the fake team.
+void CFBG::DropFakePlayerRecord(Player* player)
+{
+    _fakePlayerStore.erase(player);
+}
+
 void CFBG::ReapplyFakePlayer(Player* player)
 {
     FakePlayer const* info = GetFakePlayer(player);
