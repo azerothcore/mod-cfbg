@@ -143,7 +143,6 @@ public:
 
     TeamId ResolveBalancedTeam(TeamBalanceContext const& ctx);
 
-    bool SendRealNameQuery(Player* player);
     bool IsPlayerFake(Player* player);
     FakePlayer const* GetFakePlayer(Player* player) const;
 
@@ -158,7 +157,6 @@ public:
     // of a war, reset in ClearWGWarAssignments.
     TeamId ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint32 nativeHordeInvited);
 
-    bool ShouldForgetInListPlayers(Player* player);
     bool IsPlayingNative(Player* player);
 
     void ValidatePlayerForBG(Battleground* bg, Player* player);
@@ -170,12 +168,10 @@ public:
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
     void ClearFakePlayer(Player* player);
     void ReapplyFakePlayer(Player* player);
-    void DoForgetPlayersInList(Player* player);
-    void FitPlayerInTeam(Player* player, bool action, Battleground* bg);
+    void FitPlayerInTeam(Player* player, Battleground* bg);
     void DoForgetPlayersInBG(Player* player, Battleground* bg);
     void SetForgetBGPlayers(Player* player, bool value);
     bool ShouldForgetBGPlayers(Player* player);
-    void SetForgetInListPlayers(Player* player, bool value);
     void UpdateForget(Player* player);
     void SendMessageQueue(BattlegroundQueue* bgQueue, Battleground* bg, PvPDifficultyEntry const* bracketEntry, Player* leader);
 
@@ -219,9 +215,7 @@ private:
     TeamId _wgMajorityTeam       = TEAM_ALLIANCE;
     uint32 _wgMajorityFairShare  = 0;
     uint32 _wgMajorityNativeKept = 0;
-    std::unordered_map<Player*, ObjectGuid> _fakeNamePlayersStore;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
-    std::unordered_map<Player*, bool> _forgetInListPlayersStore;
 
     std::array<RaceData, 12> _raceData{};
     std::array<CFBGRaceInfo, 9> _raceInfo{};

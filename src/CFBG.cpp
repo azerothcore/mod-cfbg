@@ -626,24 +626,7 @@ TeamId CFBG::ResolveWGWarTeam(Player* player, uint32 nativeAllianceInvited, uint
     return (_wgMajorityTeam == TEAM_ALLIANCE) ? TEAM_HORDE : TEAM_ALLIANCE;
 }
 
-void CFBG::DoForgetPlayersInList(Player* player)
-{
-    // m_FakePlayers is filled from a vector within the battleground
-    // they were in previously so all players that have been in that BG will be invalidated.
-    for (auto const& itr : _fakeNamePlayersStore)
-    {
-        WorldPacket data(SMSG_INVALIDATE_PLAYER, 8);
-        data << itr.second;
-        player->GetSession()->SendPacket(&data);
-
-        if (Player* _player = ObjectAccessor::FindPlayer(itr.second))
-            player->GetSession()->SendNameQueryOpcode(_player->GetGUID());
-    }
-
-    _fakeNamePlayersStore.erase(player);
-}
-
-void CFBG::FitPlayerInTeam(Player* player, bool action, Battleground* bg)
+void CFBG::FitPlayerInTeam(Player* player, Battleground* bg)
 {
     if (!_IsEnableSystem)
         return;
@@ -651,13 +634,10 @@ void CFBG::FitPlayerInTeam(Player* player, bool action, Battleground* bg)
     if (!bg)
         bg = player->GetBattleground();
 
-    if ((!bg || bg->isArena()) && action)
+    if (!bg || bg->isArena())
         return;
 
-    if (action)
-        SetForgetBGPlayers(player, true);
-    else
-        SetForgetInListPlayers(player, true);
+    SetForgetBGPlayers(player, true);
 }
 
 void CFBG::SetForgetBGPlayers(Player* player, bool value)
@@ -668,16 +648,6 @@ void CFBG::SetForgetBGPlayers(Player* player, bool value)
 bool CFBG::ShouldForgetBGPlayers(Player* player)
 {
     return _forgetBGPlayersStore[player];
-}
-
-void CFBG::SetForgetInListPlayers(Player* player, bool value)
-{
-    _forgetInListPlayersStore[player] = value;
-}
-
-bool CFBG::ShouldForgetInListPlayers(Player* player)
-{
-    return _forgetInListPlayersStore.find(player) != _forgetInListPlayersStore.end() && _forgetInListPlayersStore[player];
 }
 
 void CFBG::DoForgetPlayersInBG(Player* player, Battleground* bg)
@@ -700,25 +670,6 @@ void CFBG::DoForgetPlayersInBG(Player* player, Battleground* bg)
             _player->GetSession()->SendNameQueryOpcode(player->GetGUID());
         }
     }
-}
-
-bool CFBG::SendRealNameQuery(Player* player)
-{
-    if (IsPlayingNative(player))
-        return false;
-
-    WorldPacket data(SMSG_NAME_QUERY_RESPONSE, (8 + 1 + 1 + 1 + 1 + 1 + 10));
-    data << player->GetGUID().WriteAsPacked();                  // player guid
-    data << uint8(0);                                           // added in 3.1; if > 1, then end of packet
-    data << player->GetName();                                  // played name
-    data << uint8(0);                                           // realm name for cross realm BG usage
-    data << uint8(player->getRace(true));
-    data << uint8(player->getGender());
-    data << uint8(player->getClass());
-    data << uint8(0);                                           // is not declined
-    player->GetSession()->SendPacket(&data);
-
-    return true;
 }
 
 bool CFBG::IsPlayingNative(Player* player)
@@ -951,18 +902,10 @@ bool CFBG::isClassJoining(uint8 _class, Player* player, uint32 minLevel)
 void CFBG::UpdateForget(Player* player)
 {
     Battleground* bg = player->GetBattleground();
-    if (bg)
+    if (bg && ShouldForgetBGPlayers(player))
     {
-        if (ShouldForgetBGPlayers(player) && bg)
-        {
-            DoForgetPlayersInBG(player, bg);
-            SetForgetBGPlayers(player, false);
-        }
-    }
-    else if (ShouldForgetInListPlayers(player))
-    {
-        DoForgetPlayersInList(player);
-        SetForgetInListPlayers(player, false);
+        DoForgetPlayersInBG(player, bg);
+        SetForgetBGPlayers(player, false);
     }
 }
 

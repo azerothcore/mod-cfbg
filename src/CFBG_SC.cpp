@@ -36,7 +36,7 @@ public:
 
     void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
     {
-        sCFBG->FitPlayerInTeam(player, true, bg);
+        sCFBG->FitPlayerInTeam(player, bg);
 
         if (sCFBG->IsEnableResetCooldowns())
             player->RemoveArenaSpellCooldowns(true);
@@ -55,8 +55,6 @@ public:
     {
         if (!sCFBG->IsEnableSystem() || bg->isArena())
             return;
-
-        sCFBG->FitPlayerInTeam(player, false, bg);
 
         if (sCFBG->IsPlayerFake(player))
             sCFBG->ClearFakePlayer(player);
@@ -119,7 +117,7 @@ public:
             return;
 
         if (player->GetTeamId(true) != player->GetBgTeamId())
-            sCFBG->FitPlayerInTeam(player, player->GetBattleground() && !player->GetBattleground()->isArena(), player->GetBattleground());
+            sCFBG->FitPlayerInTeam(player, player->GetBattleground());
     }
 
     void OnPlayerLogout(Player* player) override
