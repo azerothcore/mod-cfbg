@@ -536,6 +536,13 @@ void CFBG::ClearFakePlayer(Player* player)
     if (!IsPlayerFake(player))
         return;
 
+    // Unwind any charm ON the player while the fake record still exists:
+    // Unit::RemoveCharmedBy blindly restores the faction snapshotted at charm
+    // time (the fake one), which the restore below then overwrites. A charm
+    // ending after the unfake would re-plant the fake template (#166).
+    if (player->IsCharmed())
+        player->RemoveCharmAuras();
+
     player->setRace(_fakePlayerStore[player].RealRace);
     player->SetDisplayId(_fakePlayerStore[player].RealMorph);
     player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
