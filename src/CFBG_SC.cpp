@@ -21,7 +21,7 @@ public:
     CFBG_BG() : BGScript("CFBG_BG", {
         ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_BEFORE_ADD_PLAYER,
         ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_ADD_PLAYER,
-        ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_END_REWARD,
+        ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_START,
         ALLBATTLEGROUNDHOOK_ON_BATTLEGROUND_REMOVE_PLAYER_AT_LEAVE,
         ALLBATTLEGROUNDHOOK_ON_ADD_GROUP,
         ALLBATTLEGROUNDHOOK_CAN_FILL_PLAYERS_TO_BG,
@@ -34,21 +34,17 @@ public:
         sCFBG->ValidatePlayerForBG(bg, player);
     }
 
+    void OnBattlegroundStart(Battleground* bg) override
+    {
+        sCFBG->BalanceTeamsAtStart(bg);
+    }
+
     void OnBattlegroundAddPlayer(Battleground* bg, Player* player) override
     {
         sCFBG->FitPlayerInTeam(player, bg);
 
         if (sCFBG->IsEnableResetCooldowns())
             player->RemoveArenaSpellCooldowns(true);
-    }
-
-    void OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId /*winnerTeamId*/) override
-    {
-        if (!sCFBG->IsEnableSystem() || !bg || !player || bg->isArena())
-            return;
-
-        if (sCFBG->IsPlayerFake(player))
-            sCFBG->ClearFakePlayer(player);
     }
 
     void OnBattlegroundRemovePlayerAtLeave(Battleground* bg, Player* player) override
@@ -104,6 +100,7 @@ public:
         PLAYERHOOK_ON_LOGIN,
         PLAYERHOOK_ON_LOGOUT,
         PLAYERHOOK_ON_UPDATE_ZONE,
+        PLAYERHOOK_ON_UPDATE_FACTION,
         PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE,
         PLAYERHOOK_ON_BEFORE_UPDATE,
         PLAYERHOOK_ON_BEFORE_SEND_CHAT_MESSAGE,
@@ -156,18 +153,34 @@ public:
         if (!sCFBG->IsPlayerFake(player))
             return;
 
-        // Battleground fakes are owned by the BG hooks (OnBattlegroundRemovePlayerAtLeave
-        // / OnBattlegroundEndReward), not this WG cleanup. A battleground zone is not a
-        // WG battlefield, so without this guard entering a BG would clear a cross-faction
-        // player's fake right after the entry morph (Battleground::AddPlayer runs before
-        // UpdateZone), leaving GetTeamId() on the real faction while bgTeamId stays on the
-        // assigned side -- the flag-capture/win desync. WG players are not InBattleground().
+        // Battleground fakes are owned by the BG hook OnBattlegroundRemovePlayerAtLeave,
+        // not this WG cleanup. A battleground zone is not a WG battlefield, so without
+        // this guard entering a BG would clear a cross-faction player's fake right after
+        // the entry morph (Battleground::AddPlayer runs before UpdateZone), leaving
+        // GetTeamId() on the real faction while bgTeamId stays on the assigned side --
+        // the flag-capture/win desync. WG players are not InBattleground().
         if (player->InBattleground())
             return;
 
         Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(newZone);
         if (!bf || bf->GetTypeId() != BATTLEFIELD_WG)
             sCFBG->ClearFakePlayer(player);
+    }
+
+    // Core's Player::SetFactionForRace resets m_team to the real race, then
+    // applies the real faction template only when m_team matches that race --
+    // this hook is the designed cooperation point. Keep m_team on the fake side
+    // so a faked BG player's assigned faction survives core faction resets (a
+    // stray or redundant .gm off would otherwise revert nameplate/hostility/team
+    // until the next resurrect).
+    void OnPlayerUpdateFaction(Player* player) override
+    {
+        if (!sCFBG->IsEnableSystem() || !player->InBattleground())
+            return;
+
+        if (FakePlayer const* fake = sCFBG->GetFakePlayer(player))
+            if (player->GetTeamId() != fake->FakeTeamID)
+                player->setTeamId(fake->FakeTeamID);
     }
 
     bool OnPlayerCanJoinInBattlegroundQueue(Player* player, ObjectGuid /*BattlemasterGuid*/ , BattlegroundTypeId /*BGTypeID*/, uint8 joinAsGroup, GroupJoinBattlegroundResult& err) override

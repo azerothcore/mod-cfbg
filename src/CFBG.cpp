@@ -11,7 +11,9 @@
 #include "Chat.h"
 #include "Config.h"
 #include "Containers.h"
+#include "Group.h"
 #include "Language.h"
+#include "Log.h"
 #include "ObjectAccessor.h"
 #include "Opcodes.h"
 #include "ReputationMgr.h"
@@ -136,6 +138,7 @@ void CFBG::LoadConfig()
     _IsEnableBalanceClassLowLevel = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.Class.LowLevel", true);
     _IsEnableResetCooldowns = sConfigMgr->GetOption<bool>("CFBG.ResetCooldowns", false);
     _IsEnableBalanceTeamsOnEntry = sConfigMgr->GetOption<bool>("CFBG.BalanceTeamsOnEntry.Enabled", true);
+    _IsEnableBalanceTeamsAtStart = sConfigMgr->GetOption<bool>("CFBG.BalanceTeamsAtStart.Enabled", true);
     _showPlayerName = sConfigMgr->GetOption<bool>("CFBG.Show.PlayerName", false);
     _EvenTeamsMaxPlayersThreshold = sConfigMgr->GetOption<uint32>("CFBG.EvenTeams.MaxPlayersThreshold", 0);
     _MaxPlayersCountInGroup = sConfigMgr->GetOption<uint32>("CFBG.Players.Count.In.Group", 3);
@@ -341,11 +344,6 @@ void CFBG::EnforceBGTeamConsistency(Player* player)
     if (!bg || bg->isArena())
         return;
 
-    // EndBattleground already restored real identities; re-faking a ghost who
-    // reclaims during WAIT_LEAVE would double-morph him for the rest of the window.
-    if (bg->GetStatus() == STATUS_WAIT_LEAVE)
-        return;
-
     TeamId const assigned = player->GetBgTeamId();
 
     // Native: must not carry a fake.
@@ -392,8 +390,11 @@ void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)
     if (bg->isArena() || bg->isRated())
         return;
 
-    // Solo entrants only: never split a party across teams.
-    if (player->GetGroup())
+    // Never split a genuine BG premade materialising here, but a solo-queued
+    // player who merely sits in a social/questing party (e.g. a duo auto-queued
+    // as two separate solo entries) is still eligible. At this hook -- before BG
+    // raid placement -- GetGroup() is the social party.
+    if (IsPartyCommittedToBG(player, player->GetGroup(), bg))
         return;
 
     // Genuine first entry only: skip relog re-adds (already in the BG), otherwise
@@ -450,6 +451,150 @@ void CFBG::BalanceTeamsOnEntry(Battleground* bg, Player* player)
     Position const* startPos = bg->GetTeamStartPosition(corrected);
     player->TeleportTo(bg->GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(),
         startPos->GetPositionZ(), startPos->GetOrientation());
+}
+
+bool CFBG::IsPartyCommittedToBG(Player* player, Group* group, Battleground* bg)
+{
+    if (!group)
+        return false;
+
+    for (auto const& slot : group->GetMemberSlots())
+    {
+        if (slot.guid == player->GetGUID())
+            continue;
+
+        // Already standing in this instance.
+        if (bg->GetPlayers().find(slot.guid) != bg->GetPlayers().end())
+            return true;
+
+        // Or still porting in on an invite to it. An offline member can't be on
+        // his way, so he never blocks the flip.
+        Player* member = ObjectAccessor::FindConnectedPlayer(slot.guid);
+        if (member && member->IsInvitedForBattlegroundInstance(bg->GetInstanceID()))
+            return true;
+    }
+
+    return false;
+}
+
+void CFBG::BalanceTeamsAtStart(Battleground* bg)
+{
+    // The gates just opened. Team selection was balanced when the invites went
+    // out, but same-side no-shows with an empty backfill queue can leave the
+    // physical teams grossly uneven (4v1). Nothing re-checks the split before the
+    // doors open, so do it here: flip surplus entrants onto the smaller side
+    // until the diff is at most 1.
+    if (!IsEnableSystem() || !IsEnableBalanceTeamsAtStart())
+        return;
+
+    if (!bg || bg->isArena() || bg->isRated())
+        return;
+
+    // Decide on physical head counts only: the pending reservations that never
+    // materialised are exactly what produced the imbalance, so the invited ledger
+    // must not steer the repair. Each flip shrinks the diff by 2, so the loop
+    // terminates when the teams are within 1 or no flippable candidate is left.
+    while (true)
+    {
+        uint32 const countA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
+        uint32 const countH = bg->GetPlayersCountByTeam(TEAM_HORDE);
+        uint32 const diff = countA > countH ? countA - countH : countH - countA;
+
+        if (diff < 2)
+            break;
+
+        TeamId const larger = countA > countH ? TEAM_ALLIANCE : TEAM_HORDE;
+        TeamId const smaller = larger == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+
+        // Prefer flipping a faked player whose real faction is the smaller side:
+        // the flip just unfakes him back to native (least disruption). Otherwise
+        // take any flippable player on the larger side.
+        Player* toFlip = nullptr;
+        Player* fallback = nullptr;
+
+        for (auto const& [guid, player] : bg->GetPlayers())
+        {
+            if (!player || player->GetBgTeamId() != larger)
+                continue;
+
+            // Never split a real premade. Inside the BG the social party is the
+            // original group -- GetGroup() is the BG raid at this point.
+            if (IsPartyCommittedToBG(player, player->GetOriginalGroup(), bg))
+                continue;
+
+            if (IsPlayerFake(player) && player->GetTeamId(true) == smaller)
+            {
+                toFlip = player;
+                break;
+            }
+
+            if (!fallback)
+                fallback = player;
+        }
+
+        if (!toFlip)
+            toFlip = fallback;
+
+        // Nothing left to flip: any residual imbalance is rooted in premades we
+        // won't split. Open the match as-is -- the existing 5-minute premature
+        // finish path handles a still-degenerate game, exactly as today.
+        if (!toFlip)
+            break;
+
+        // Keep both the physical counts and the invited ledger zero-sum with the
+        // player's future leave-time decrement (mirrors BalanceTeamsOnEntry).
+        bg->UpdatePlayersCountByTeam(larger, true);
+        bg->UpdatePlayersCountByTeam(smaller, false);
+        bg->DecreaseInvitedCount(larger);
+        bg->IncreaseInvitedCount(smaller);
+        toFlip->GetBGData().bgTeamId = smaller;
+
+        // Move him into the smaller side's BG raid. Remove from the old raid
+        // first: AddOrSetPlayerToCorrectBgGroup early-returns while the player is
+        // still in a BG group.
+        if (Group* oldRaid = bg->GetBgRaid(larger))
+            if (oldRaid->IsMember(toFlip->GetGUID()))
+                if (!oldRaid->RemoveMember(toFlip->GetGUID())) // group was disbanded
+                    bg->SetBgRaid(larger, nullptr);
+        bg->AddOrSetPlayerToCorrectBgGroup(toFlip, smaller);
+
+        // Apply/clear/redo the fake for the new side.
+        EnforceBGTeamConsistency(toFlip);
+
+        // The flip changed his race/faction; refresh every client's cached
+        // identity for him (and his for theirs) so nobody keeps the pre-flip
+        // race in their name-query cache -- same path a fresh entrant takes via
+        // OnBattlegroundAddPlayer.
+        FitPlayerInTeam(toFlip, bg);
+
+        // AV forced reactions track the assigned side, so refresh them for a
+        // player who is now cross-faction (a now-native player had them cleared
+        // by the unfake). Mirrors ValidatePlayerForBG's entry-time handling.
+        if (!IsPlayingNative(toFlip) && bg->GetMapId() == MapAlteracValley)
+        {
+            if (smaller == TEAM_HORDE)
+            {
+                toFlip->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, true);
+                toFlip->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_HOSTILE, true);
+            }
+            else
+            {
+                toFlip->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_HOSTILE, true);
+                toFlip->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_FRIENDLY, true);
+            }
+
+            toFlip->GetReputationMgr().SendForceReactions();
+        }
+
+        // Move him from his old base to the smaller side's.
+        Position const* startPos = bg->GetTeamStartPosition(smaller);
+        toFlip->TeleportTo(bg->GetMapId(), startPos->GetPositionX(), startPos->GetPositionY(),
+            startPos->GetPositionZ(), startPos->GetOrientation());
+
+        LOG_DEBUG("module", "mod-cfbg: BalanceTeamsAtStart flipped {} to {} in instance {} ({}v{})",
+            toFlip->GetName(), static_cast<uint32>(smaller), bg->GetInstanceID(),
+            bg->GetPlayersCountByTeam(TEAM_ALLIANCE), bg->GetPlayersCountByTeam(TEAM_HORDE));
+    }
 }
 
 uint32 CFBG::GetMorphFromRace(uint8 race, uint8 gender)
@@ -779,8 +924,18 @@ std::array<uint32, 2> CFBG::GetProjectedBaseCounts(Battleground* bg, Battlegroun
     // accept deleted their ginfo; AddPlayer has not run yet). The BG's invited
     // ledger still holds every reservation, so clamp up to it; max() degrades
     // gracefully if either register is skewed.
-    counts[TEAM_ALLIANCE] = std::max(counts[TEAM_ALLIANCE], bg->GetInvitedCount(TEAM_ALLIANCE));
-    counts[TEAM_HORDE] = std::max(counts[TEAM_HORDE], bg->GetInvitedCount(TEAM_HORDE));
+    uint32 const computedA = counts[TEAM_ALLIANCE];
+    uint32 const computedH = counts[TEAM_HORDE];
+    counts[TEAM_ALLIANCE] = std::max(computedA, bg->GetInvitedCount(TEAM_ALLIANCE));
+    counts[TEAM_HORDE] = std::max(computedH, bg->GetInvitedCount(TEAM_HORDE));
+
+    // The ledger exceeding the physical + invited-queued tally is the signature
+    // of a leaked reservation steering selection. In-flight accepts trip this
+    // briefly and legitimately, so it stays at debug for operators hunting a
+    // persistent skew.
+    if (counts[TEAM_ALLIANCE] > computedA || counts[TEAM_HORDE] > computedH)
+        LOG_DEBUG("module", "mod-cfbg: instance {} projections clamped by invited ledger (A {}->{}, H {}->{}), possible phantom reservation",
+            bg->GetInstanceID(), computedA, counts[TEAM_ALLIANCE], computedH, counts[TEAM_HORDE]);
 
     return counts;
 }
