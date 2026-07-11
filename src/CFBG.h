@@ -131,6 +131,7 @@ public:
     inline bool IsEnableEvenTeams() const { return _IsEnableEvenTeams; }
     inline bool IsEnableResetCooldowns() const { return _IsEnableResetCooldowns; }
     inline bool IsEnableBalanceTeamsOnEntry() const { return _IsEnableBalanceTeamsOnEntry; }
+    inline bool IsEnableBalanceTeamsAtStart() const { return _IsEnableBalanceTeamsAtStart; }
     inline uint32 EvenTeamsMaxPlayersThreshold() const { return _EvenTeamsMaxPlayersThreshold; }
     inline uint32 GetMaxPlayersCountInGroup() const { return _MaxPlayersCountInGroup; }
     inline uint8 GetBalanceClassMinLevel() const { return _balanceClassMinLevel; }
@@ -165,6 +166,12 @@ public:
     // Forces race/faction/m_team/fake-store into agreement with the player's
     // assigned BG team (GetBgTeamId()); idempotent and self-correcting.
     void EnforceBGTeamConsistency(Player* player);
+
+    // Doors-open head-count repair: when declined/no-show invites left the teams
+    // grossly uneven (diff >= 2) once the gates open, flip surplus solo entrants
+    // to the smaller side so the match starts within 1 of even. Real BG premades
+    // are never split. Fired from OnBattlegroundStart.
+    void BalanceTeamsAtStart(Battleground* bg);
     void SetFakeRaceAndMorph(Player* player);
     void SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam);
     void SetFactionForRace(Player* player, uint8 Race, TeamId teamId);
@@ -201,6 +208,13 @@ private:
 
     // Arrival-time head-count correction for solo entrants.
     void BalanceTeamsOnEntry(Battleground* bg, Player* player);
+
+    // True when another member of `player`'s social party is already committed to
+    // this bg instance (already entered, or holding an invite to it). Flipping the
+    // player would then split a real premade that is materializing here, so the
+    // head-count repairs leave them put. `group` is the social party: GetGroup()
+    // before the BG raid is assigned (entry hook), GetOriginalGroup() once inside.
+    bool IsPartyCommittedToBG(Player* player, Group* group, Battleground* bg);
 
     RandomSkinInfo GetRandomRaceMorph(TeamId team, uint8 playerClass, uint8 gender);
 
@@ -242,6 +256,7 @@ private:
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
     bool _IsEnableBalanceTeamsOnEntry;
+    bool _IsEnableBalanceTeamsAtStart;
     bool _showPlayerName;
     bool _randomizeRaces;
     uint32 _EvenTeamsMaxPlayersThreshold;

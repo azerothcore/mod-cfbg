@@ -121,6 +121,17 @@
 #                    grouped players are never moved.
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
+#
+#   CFBG.BalanceTeamsAtStart.Enabled
+#       Description: When the gates open, if declined or ignored invites left the
+#                    physical teams uneven by 2 or more, flip surplus entrants to
+#                    the smaller side so the match starts within 1 of even (e.g. a
+#                    4v1 opens 3v2). Real battleground premades are never split; a
+#                    solo player merely sitting in a social/questing party still
+#                    counts as flippable. Decisions use live head counts only, so
+#                    reservations that never showed up don't skew the repair.
+#       Default: 1 - (Enabled)
+#                0 - (Disabled)
 
 CFBG.Enable = 1
 CFBG.Battlefield.Enable = 1
@@ -141,3 +152,4 @@ CFBG.ResetCooldowns = 0
 CFBG.Show.PlayerName = 0
 CFBG.RandomRaceSelection = 1
 CFBG.BalanceTeamsOnEntry.Enabled = 1
+CFBG.BalanceTeamsAtStart.Enabled = 1
