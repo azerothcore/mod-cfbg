@@ -298,6 +298,8 @@ public:
 static constexpr uint32 WG_SPELL_LIEUTENANT            = 55629;
 static constexpr uint32 WG_NPC_QUEST_PVP_KILL_ALLIANCE = 31086;
 static constexpr uint32 WG_NPC_QUEST_PVP_KILL_HORDE    = 39019;
+static constexpr uint32 WG_QUEST_VICTORY_ALLIANCE      = 13181;
+static constexpr uint32 WG_QUEST_VICTORY_HORDE         = 13183;
 
 class CFBG_Battlefield : public BattlefieldScript
 {
@@ -457,11 +459,32 @@ public:
         // war set still reflects who was actively fighting. ClearFakePlayer
         // is a no-op for unfaked players, so iterating GUIDs that may or may
         // not be faked is safe.
+
+        // "Victory in Wintergrasp": OnBattleEnd credits the winners with the
+        // quest of the defending (= winning) team only, which misses cross-
+        // faction players holding their native faction's copy. Grant the other
+        // one here -- AreaExploredOrEventHappens is a no-op on a quest the
+        // player does not hold, and core still grants its own right after.
+        uint32 const otherVictoryQuest = bf->GetDefenderTeam() == TEAM_ALLIANCE ? WG_QUEST_VICTORY_HORDE
+                                                                               : WG_QUEST_VICTORY_ALLIANCE;
+
         for (uint8 team = 0; team < PVP_TEAMS_COUNT; ++team)
+        {
+            bool const isWinner = static_cast<TeamId>(team) == bf->GetDefenderTeam();
+
             for (ObjectGuid const& guid : bf->GetPlayersInWarSet(static_cast<TeamId>(team)))
-                if (Player* player = ObjectAccessor::FindPlayer(guid))
-                    if (sCFBG->IsPlayerFake(player))
-                        sCFBG->ClearFakePlayer(player);
+            {
+                Player* player = ObjectAccessor::FindPlayer(guid);
+                if (!player)
+                    continue;
+
+                if (isWinner)
+                    player->AreaExploredOrEventHappens(otherVictoryQuest);
+
+                if (sCFBG->IsPlayerFake(player))
+                    sCFBG->ClearFakePlayer(player);
+            }
+        }
 
         // Lock is per-war: drop assignments so the next war re-balances.
         sCFBG->ClearWGWarAssignments();
