@@ -104,6 +104,7 @@ public:
         PLAYERHOOK_CAN_JOIN_IN_BATTLEGROUND_QUEUE,
         PLAYERHOOK_ON_BEFORE_UPDATE,
         PLAYERHOOK_ON_BEFORE_SEND_CHAT_MESSAGE,
+        PLAYERHOOK_CAN_SPEAK_UNLEARNED_LANGUAGE,
         PLAYERHOOK_ON_REPUTATION_CHANGE,
         PLAYERHOOK_ON_PLAYER_RESURRECT
     }) { }
@@ -115,10 +116,17 @@ public:
 
         if (player->GetTeamId(true) != player->GetBgTeamId())
             sCFBG->FitPlayerInTeam(player, player->GetBattleground());
+
+        // The login packets (initial spells, own create block) went out before
+        // this hook; re-send the shown language of a fake applied at login.
+        if (sCFBG->GetShownFake(player))
+            sCFBG->RefreshShownFake(player);
     }
 
     void OnPlayerLogout(Player* player) override
     {
+        sCFBG->ClearPendingLanguageSpell(player);
+
         if (!sCFBG->IsEnableSystem() || !sCFBG->IsPlayerFake(player))
             return;
 
@@ -134,7 +142,11 @@ public:
         if (bf && bf->GetTypeId() == BATTLEFIELD_WG)
         {
             if (!bf->IsWarTime())
+            {
                 sCFBG->ClearFakePlayer(player);
+                // The restore above queued a language spell for this player.
+                sCFBG->ClearPendingLanguageSpell(player);
+            }
             else
                 sCFBG->DropFakePlayerRecord(player);
         }
@@ -214,6 +226,14 @@ public:
         // after service, so serving it on the next tick self-rate-limits.
         if (sCFBG->HasPendingForget(player))
             sCFBG->UpdateForget(player);
+
+        // A reconnect (EnableLoginAfterDC) resends the real spells and skill
+        // fields to a new session without calling OnPlayerLogin.
+        FakePlayer const* fake = sCFBG->GetShownFake(player);
+        if (fake && fake->ShownSession != player->GetSession())
+            sCFBG->RefreshShownFake(player);
+
+        sCFBG->UpdatePendingLanguageSpell(player);
     }
 
     void OnPlayerBeforeSendChatMessage(Player* player, uint32& type, uint32& lang, std::string& /*msg*/) override
@@ -223,7 +243,9 @@ public:
 
         Battleground* bg = player->GetBattleground();
 
-        if (!bg || bg->isArena())
+        // Outside a BG (Wintergrasp) a shown fake also speaks the fake
+        // faction's language, which native friends and guild cannot read.
+        if ((!bg || bg->isArena()) && !sCFBG->GetShownFake(player))
             return;
 
         // skip addon lang and universal
@@ -234,13 +256,25 @@ public:
         if (type == CHAT_MSG_ADDON || type == CHAT_MSG_SYSTEM)
             return;
 
-        // keep proximity chat in the native language so enemies get
+        // keep proximity chat in the spoken language so enemies get
         // the normal cross-faction scramble instead of readable text
         if (type == CHAT_MSG_SAY || type == CHAT_MSG_YELL)
             return;
 
         // to gm lang
         lang = LANG_UNIVERSAL;
+    }
+
+    bool OnPlayerCanSpeakUnlearnedLanguage(Player* player, uint32 /*type*/,
+        uint32 lang) override
+    {
+        if (!sCFBG->IsEnableSystem())
+            return false;
+
+        // CFBG_Unit shows the client the fake faction's language as known, so
+        // the client speaks it by default.
+        FakePlayer const* fake = sCFBG->GetShownFake(player);
+        return fake && lang == CFBG::GetTeamLanguage(fake->FakeTeamID);
     }
 
     void OnPlayerResurrect(Player* player, float /*restorePercent*/, bool& /*applySickness*/) override
@@ -252,7 +286,15 @@ public:
         // re-assert assigned-team consistency after the ghost->alive transition.
         if (player->InBattleground())
         {
+            uint8 const raceBefore = player->getRace();
             sCFBG->EnforceBGTeamConsistency(player);
+
+            // Out-of-range observers (scoreboard, carried-flag icon) use the
+            // name cache, which otherwise keeps the pre-resurrect race after a
+            // stale fake is redone or cleared.
+            if (player->getRace() != raceBefore)
+                sCFBG->FitPlayerInTeam(player, nullptr);
+
             return;
         }
 
@@ -291,6 +333,84 @@ public:
         }
 
         return true;
+    }
+};
+
+static bool IsSkillIndex(uint16 index)
+{
+    return index >= PLAYER_SKILL_INDEX(0) &&
+        index < PLAYER_SKILL_INDEX(PLAYER_MAX_SKILLS);
+}
+
+// Clients take an in-range player's race from UNIT_FIELD_BYTES_0 byte 0
+// (tooltip, target frame, WSG/EotS carried-flag icon, including the carrier's
+// own), while the name cache already carries the fake race. The player's own
+// client then defaults to the fake faction's language, so it is shown that
+// language in a free skill slot (see CFBG::RefreshShownFake). Only outgoing
+// packets are patched; the stored fields stay real so nothing server-side
+// changes.
+class CFBG_Unit : public UnitScript
+{
+public:
+    CFBG_Unit() : UnitScript("CFBG_Unit", true, {
+        UNITHOOK_SHOULD_TRACK_VALUES_UPDATE_POS_BY_INDEX,
+        UNITHOOK_ON_PATCH_VALUES_UPDATE
+    }) { }
+
+    bool ShouldTrackValuesUpdatePosByIndex(Unit const* unit,
+        uint8 /*updateType*/, uint16 index) override
+    {
+        if (!sCFBG->IsEnableSystem() || !unit->IsPlayer())
+            return false;
+
+        if (index == UNIT_FIELD_BYTES_0)
+            return true;
+
+        if (!IsSkillIndex(index))
+            return false;
+
+        Player const* player = unit->ToPlayer();
+        if (!sCFBG->GetShownFake(player))
+            return false;
+
+        std::optional<uint8> const slot = CFBG::GetShownLanguageSlot(player);
+        return slot && (index == PLAYER_SKILL_INDEX(*slot) ||
+            index == PLAYER_SKILL_VALUE_INDEX(*slot));
+    }
+
+    void OnPatchValuesUpdate(Unit const* unit, ByteBuffer& valuesUpdateBuf,
+        BuildValuesCachePosPointers& posPointers, Player* /*target*/) override
+    {
+        if (posPointers.other.empty())
+            return;
+
+        Player const* player = unit->ToPlayer();
+        if (!player)
+            return;
+
+        FakePlayer const* fake = sCFBG->GetShownFake(player);
+        if (!fake)
+            return;
+
+        // Skill fields are private: only the player's own client gets them.
+        std::optional<uint8> const slot = CFBG::GetShownLanguageSlot(player);
+
+        for (auto const& [index, pos] : posPointers.other)
+        {
+            uint32 value = unit->GetUInt32Value(index);
+
+            if (index == UNIT_FIELD_BYTES_0)
+                value = (value & ~uint32(0xFF)) | fake->FakeRace;
+            else if (slot && index == PLAYER_SKILL_INDEX(*slot))
+                value = MAKE_PAIR32(
+                    CFBG::GetTeamLanguageSkill(fake->FakeTeamID), 0);
+            else if (slot && index == PLAYER_SKILL_VALUE_INDEX(*slot))
+                value = MAKE_SKILL_VALUE(300, 300);
+            else
+                continue;
+
+            valuesUpdateBuf.put<uint32>(pos, value);
+        }
     }
 };
 
@@ -508,6 +628,7 @@ void AddSC_CFBG()
 {
     new CFBG_BG();
     new CFBG_Player();
+    new CFBG_Unit();
     new CFBG_Battlefield();
     new CFBG_World();
 }

@@ -11,7 +11,9 @@
 #include "DBCEnums.h"
 #include "ObjectGuid.h"
 #include <array>
+#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -21,6 +23,7 @@ class Battlefield;
 class Battleground;
 class BattlegroundQueue;
 class Group;
+class WorldSession;
 
 struct GroupQueueInfo;
 struct PvPDifficultyEntry;
@@ -62,6 +65,10 @@ struct FakePlayer
     uint32  RealMorph;
     uint32  RealNativeMorph;
     TeamId  RealTeamID;
+
+    // Session last shown the fake language (CFBG::RefreshShownFake). A
+    // reconnect swaps the session and resends real fields with no login hook.
+    WorldSession const* ShownSession = nullptr;
 };
 
 struct RaceData
@@ -145,7 +152,33 @@ public:
     TeamId ResolveBalancedTeam(TeamBalanceContext const& ctx);
 
     bool IsPlayerFake(Player* player);
-    FakePlayer const* GetFakePlayer(Player* player) const;
+    FakePlayer const* GetFakePlayer(Player const* player) const;
+    // The fake that CFBG_Unit shows to clients (race, language); none in
+    // arenas.
+    FakePlayer const* GetShownFake(Player const* player) const;
+
+    static uint32 GetTeamLanguage(TeamId team)
+    {
+        return team == TEAM_ALLIANCE ? LANG_COMMON : LANG_ORCISH;
+    }
+
+    static uint16 GetTeamLanguageSkill(TeamId team)
+    {
+        return team == TEAM_ALLIANCE ? SKILL_LANG_COMMON : SKILL_LANG_ORCISH;
+    }
+
+    // Free skill slot where CFBG_Unit shows the fake faction's language to
+    // the player's own client: the last one, away from where the core adds
+    // skills.
+    static std::optional<uint8> GetShownLanguageSlot(Player const* player);
+
+    // Re-sends what CFBG_Unit patches (race, language skill) and the language
+    // spell, so clients that already have the player get them after a fake
+    // is applied/cleared.
+    void RefreshShownFake(Player* player);
+    // Per-tick service of the deferred language spell packet.
+    void UpdatePendingLanguageSpell(Player* player);
+    void ClearPendingLanguageSpell(Player* player);
 
     // Per-war WG team lock, GUID-keyed so it survives leaving the war/zone and
     // relog. Cleared when the war ends.
@@ -228,8 +261,16 @@ private:
     // m_SelectionPools keeping projected sizes within allowedDiff, premades atomic.
     void SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam, uint32 allowedDiff);
 
+    // Read from every map thread (CFBG_Unit, per-tick hooks) while fakes are
+    // applied/cleared on others (Wintergrasp zone change, resurrect).
+    // Returned pointers stay valid: nodes survive rehash and only the
+    // player's own context erases its entry.
     std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
+    mutable std::shared_mutex _fakePlayerLock;
     std::unordered_map<ObjectGuid, TeamId> _wgWarAssignmentStore;
+    // Player updates left before the language spell packet is sent.
+    std::unordered_map<ObjectGuid, uint8> _pendingLanguageSpellStore;
+    std::mutex _pendingLanguageSpellLock;
 
     // Per-war native census for ResolveWGWarTeam, reset in ClearWGWarAssignments.
     bool   _wgCensusValid        = false;
@@ -237,6 +278,8 @@ private:
     uint32 _wgMajorityFairShare  = 0;
     uint32 _wgMajorityNativeKept = 0;
     std::unordered_map<Player*, bool> _forgetBGPlayersStore;
+    // Same cross-thread access as _fakePlayerStore (resurrect re-fit).
+    mutable std::shared_mutex _forgetBGPlayersLock;
 
     std::array<RaceData, 12> _raceData{};
     std::array<CFBGRaceInfo, 9> _raceInfo{};

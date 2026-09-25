@@ -15,6 +15,7 @@
 #include "Language.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
+#include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
@@ -112,8 +113,14 @@ void CFBG::LoadConfig()
 
             // Anything left is a leaked entry whose Player was already
             // deleted; drop it without dereferencing the key.
-            _fakePlayerStore.clear();
-            _forgetBGPlayersStore.clear();
+            {
+                std::unique_lock lock(_fakePlayerLock);
+                _fakePlayerStore.clear();
+            }
+            {
+                std::unique_lock lock(_forgetBGPlayersLock);
+                _forgetBGPlayersStore.clear();
+            }
         }
 
         return;
@@ -656,7 +663,8 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
         player->getRace(true),
         player->GetDisplayId(),
         player->GetNativeDisplayId(),
-        player->GetTeamId(true)
+        player->GetTeamId(true),
+        nullptr
     };
 
     player->setRace(fakePlayerInfo.FakeRace);
@@ -664,7 +672,11 @@ void CFBG::SetFakeRaceAndMorph(Player* player)
     player->SetDisplayId(fakePlayerInfo.FakeMorph);
     player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
 
-    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    {
+        std::unique_lock lock(_fakePlayerLock);
+        _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    }
+    RefreshShownFake(player);
 }
 
 void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
@@ -695,7 +707,8 @@ void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
         player->getRace(true),
         player->GetDisplayId(),
         player->GetNativeDisplayId(),
-        realTeam
+        realTeam,
+        nullptr
     };
 
     player->setRace(fakePlayerInfo.FakeRace);
@@ -703,7 +716,11 @@ void CFBG::SetFakeRaceAndMorphForBF(Player* player, TeamId assignedTeam)
     player->SetDisplayId(fakePlayerInfo.FakeMorph);
     player->SetNativeDisplayId(fakePlayerInfo.FakeMorph);
 
-    _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    {
+        std::unique_lock lock(_fakePlayerLock);
+        _fakePlayerStore.emplace(player, std::move(fakePlayerInfo));
+    }
+    RefreshShownFake(player);
 }
 
 void CFBG::SetFactionForRace(Player* player, uint8 Race, TeamId teamId)
@@ -725,7 +742,8 @@ void CFBG::SetFactionForRace(Player* player, uint8 Race, TeamId teamId)
 
 void CFBG::ClearFakePlayer(Player* player)
 {
-    if (!IsPlayerFake(player))
+    FakePlayer const* info = GetFakePlayer(player);
+    if (!info)
         return;
 
     // Unwind any charm ON the player while the fake record still exists:
@@ -735,26 +753,31 @@ void CFBG::ClearFakePlayer(Player* player)
     if (player->IsCharmed())
         player->RemoveCharmAuras();
 
-    player->setRace(_fakePlayerStore[player].RealRace);
+    player->setRace(info->RealRace);
     // Restore via the aura-resolution path, not the entry-time snapshot: a
     // player who dropped a shapeshift/transform mid-BG must get the real model
     // back, one still in the form keeps the form model. RestoreDisplayId's
     // no-aura fallback is the native display, so set that first.
-    player->SetNativeDisplayId(_fakePlayerStore[player].RealNativeMorph);
+    player->SetNativeDisplayId(info->RealNativeMorph);
     player->RestoreDisplayId();
-    SetFactionForRace(player, _fakePlayerStore[player].RealRace, _fakePlayerStore[player].RealTeamID);
+    SetFactionForRace(player, info->RealRace, info->RealTeamID);
 
     // Clear forced faction reactions. Rank doesn't matter here, not used when they are removed.
     player->GetReputationMgr().ApplyForceReaction(FACTION_FROSTWOLF_CLAN, REP_FRIENDLY, false);
     player->GetReputationMgr().ApplyForceReaction(FACTION_STORMPIKE_GUARD, REP_FRIENDLY, false);
 
-    _fakePlayerStore.erase(player);
+    {
+        std::unique_lock lock(_fakePlayerLock);
+        _fakePlayerStore.erase(player);
+    }
+    RefreshShownFake(player);
 }
 
 // Erase-only: no race/morph/faction/m_team restore. Used at wartime WG logout,
 // where Player::RemoveFromWorld still erases PlayersInWar keyed on the fake team.
 void CFBG::DropFakePlayerRecord(Player* player)
 {
+    std::unique_lock lock(_fakePlayerLock);
     _fakePlayerStore.erase(player);
 }
 
@@ -772,14 +795,94 @@ void CFBG::ReapplyFakePlayer(Player* player)
     player->SetNativeDisplayId(info->FakeMorph);
 }
 
+std::optional<uint8> CFBG::GetShownLanguageSlot(Player const* player)
+{
+    for (uint8 i = PLAYER_MAX_SKILLS; i > 0; --i)
+        if (!player->GetUInt32Value(PLAYER_SKILL_INDEX(i - 1)))
+            return i - 1;
+
+    return std::nullopt;
+}
+
+void CFBG::RefreshShownFake(Player* player)
+{
+    // Clients read an in-range player's race from UNIT_FIELD_BYTES_0.
+    // CFBG_Unit patches it in outgoing packets without changing the stored
+    // value, so mark it changed for clients that already have the player.
+    player->ForceValuesUpdateAtIndex(UNIT_FIELD_BYTES_0);
+
+    // The player's own client then defaults to the fake faction's language and
+    // only speaks one it sees as learned. Show it the language as the core
+    // does on a real learn (skill slot + learned spell), packets only: the
+    // server never learns it.
+    std::optional<uint8> const slot = GetShownLanguageSlot(player);
+    if (slot)
+    {
+        player->ForceValuesUpdateAtIndex(PLAYER_SKILL_INDEX(*slot));
+        player->ForceValuesUpdateAtIndex(PLAYER_SKILL_VALUE_INDEX(*slot));
+    }
+
+    {
+        std::unique_lock lock(_fakePlayerLock);
+        auto itr = _fakePlayerStore.find(player);
+        if (itr != _fakePlayerStore.end())
+            itr->second.ShownSession = player->GetSession();
+    }
+
+    // The chat box only re-picks its language on a language list change, so
+    // the spell must reach the client after the race above. Object updates go
+    // out at the end of the map update: two player updates later they have.
+    std::lock_guard lock(_pendingLanguageSpellLock);
+    _pendingLanguageSpellStore[player->GetGUID()] = 2;
+}
+
+void CFBG::UpdatePendingLanguageSpell(Player* player)
+{
+    {
+        std::lock_guard lock(_pendingLanguageSpellLock);
+        auto itr = _pendingLanguageSpellStore.find(player->GetGUID());
+        if (itr == _pendingLanguageSpellStore.end() || --itr->second)
+            return;
+
+        _pendingLanguageSpellStore.erase(itr);
+    }
+
+    TeamId const realTeam = player->GetTeamId(true);
+    TeamId const otherTeam =
+        realTeam == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+    LanguageDesc const* langDesc =
+        GetLanguageDescByID(GetTeamLanguage(otherTeam));
+    if (!langDesc || player->HasSpell(langDesc->spell_id))
+        return;
+
+    player->SendLearnPacket(langDesc->spell_id,
+        GetShownFake(player) != nullptr);
+}
+
+void CFBG::ClearPendingLanguageSpell(Player* player)
+{
+    std::lock_guard lock(_pendingLanguageSpellLock);
+    _pendingLanguageSpellStore.erase(player->GetGUID());
+}
+
 bool CFBG::IsPlayerFake(Player* player)
 {
+    std::shared_lock lock(_fakePlayerLock);
     return _fakePlayerStore.contains(player);
 }
 
-FakePlayer const* CFBG::GetFakePlayer(Player* player) const
+FakePlayer const* CFBG::GetFakePlayer(Player const* player) const
 {
-    return Acore::Containers::MapGetValuePtr(_fakePlayerStore, player);
+    std::shared_lock lock(_fakePlayerLock);
+    // The store is keyed by Player*; the cast is for the key lookup only.
+    return Acore::Containers::MapGetValuePtr(_fakePlayerStore,
+        const_cast<Player*>(player));
+}
+
+FakePlayer const* CFBG::GetShownFake(Player const* player) const
+{
+    FakePlayer const* fake = GetFakePlayer(player);
+    return fake && !player->InArena() ? fake : nullptr;
 }
 
 std::optional<TeamId> CFBG::GetWGWarAssignment(ObjectGuid guid) const
@@ -866,16 +969,19 @@ void CFBG::FitPlayerInTeam(Player* player, Battleground* bg)
 
 void CFBG::SetForgetBGPlayers(Player* player, bool value)
 {
+    std::unique_lock lock(_forgetBGPlayersLock);
     _forgetBGPlayersStore[player] = value;
 }
 
 bool CFBG::ShouldForgetBGPlayers(Player* player)
 {
+    std::unique_lock lock(_forgetBGPlayersLock);
     return _forgetBGPlayersStore[player];
 }
 
 bool CFBG::HasPendingForget(Player* player) const
 {
+    std::shared_lock lock(_forgetBGPlayersLock);
     auto const itr = _forgetBGPlayersStore.find(player);
     return itr != _forgetBGPlayersStore.end() && itr->second;
 }
