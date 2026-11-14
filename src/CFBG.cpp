@@ -5,6 +5,7 @@
  */
 
 #include "CFBG.h"
+#include "CFBGBestSplit.h"
 #include "BattlegroundMgr.h"
 #include "BattlegroundQueue.h"
 #include "BattlegroundUtils.h"
@@ -23,8 +24,17 @@
 #include "GameTime.h"
 #include "Player.h"
 #include "WorldSessionMgr.h"
+#include <shared_mutex>
 
 constexpr uint32 MapAlteracValley = 30;
+
+namespace
+{
+    uint32 TruncatedIlvl(Player* player)
+    {
+        return static_cast<uint32>(player->GetAverageItemLevel());
+    }
+}
 
 CrossFactionGroupInfo::CrossFactionGroupInfo(GroupQueueInfo* groupInfo)
 {
@@ -134,6 +144,8 @@ void CFBG::LoadConfig()
 
     _IsEnableAvgIlvl = sConfigMgr->GetOption<bool>("CFBG.Include.Avg.Ilvl.Enable", false);
     _IsEnableBalancedTeams = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams", false);
+    _IsEnableBestSplit = sConfigMgr->GetOption<bool>(
+        "CFBG.BalancedTeams.BestSplit.Enabled", true);
     _IsEnableEvenTeams = sConfigMgr->GetOption<bool>("CFBG.EvenTeams.Enabled", false);
     _IsEnableBalanceClassLowLevel = sConfigMgr->GetOption<bool>("CFBG.BalancedTeams.Class.LowLevel", true);
     _IsEnableResetCooldowns = sConfigMgr->GetOption<bool>("CFBG.ResetCooldowns", false);
@@ -477,6 +489,124 @@ bool CFBG::IsPartyCommittedToBG(Player* player, Group* group, Battleground* bg)
     return false;
 }
 
+Player* CFBG::PickStartMoveByFaction(Battleground* bg, TeamId larger,
+    TeamId smaller)
+{
+    // Prefer flipping a faked player whose real faction is the smaller side:
+    // the flip just unfakes him back to native (least disruption). Otherwise
+    // take any flippable player on the larger side.
+    Player* toFlip = nullptr;
+    Player* fallback = nullptr;
+
+    for (auto const& [guid, player] : bg->GetPlayers())
+    {
+        if (!player || player->GetBgTeamId() != larger)
+            continue;
+
+        // Never split a real premade. Inside the BG the social party is the
+        // original group -- GetGroup() is the BG raid at this point.
+        if (IsPartyCommittedToBG(player, player->GetOriginalGroup(), bg))
+            continue;
+
+        if (IsPlayerFake(player) && player->GetTeamId(true) == smaller)
+        {
+            toFlip = player;
+            break;
+        }
+
+        if (!fallback)
+            fallback = player;
+    }
+
+    if (!toFlip)
+        toFlip = fallback;
+
+    return toFlip;
+}
+
+bool CFBG::UseStartMovesByLevel() const
+{
+    return IsEnableBalancedTeams() && IsEnableBestSplit();
+}
+
+std::vector<Player*> CFBG::StartMoveSetByFaction(
+    std::vector<Player*> const& eligible, std::size_t k, TeamId to)
+{
+    std::vector<Player*> moves;
+    for (Player* player : eligible)
+        if (moves.size() < k && IsPlayerFake(player) &&
+            player->GetTeamId(true) == to)
+            moves.push_back(player);
+
+    for (Player* player : eligible)
+        if (moves.size() < k &&
+            std::find(moves.begin(), moves.end(), player) == moves.end())
+            moves.push_back(player);
+
+    return moves;
+}
+
+CFBGStartMoves CFBG::SelectStartMovesByLevel(Battleground* bg)
+{
+    CFBGStartMoves moves;
+
+    uint32 const countA = bg->GetPlayersCountByTeam(TEAM_ALLIANCE);
+    uint32 const countH = bg->GetPlayersCountByTeam(TEAM_HORDE);
+    uint32 const diff = countA > countH ? countA - countH : countH - countA;
+    if (diff < 2)
+        return moves;
+
+    moves.from = countA > countH ? TEAM_ALLIANCE : TEAM_HORDE;
+    moves.to = moves.from == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
+
+    std::vector<Player*> eligible;
+    for (auto const& [guid, player] : bg->GetPlayers())
+        if (player && player->GetBgTeamId() == moves.from &&
+            !IsPartyCommittedToBG(player, player->GetOriginalGroup(), bg))
+            eligible.push_back(player);
+
+    std::size_t const k = std::min<std::size_t>(diff / 2, eligible.size());
+    if (!k)
+        return moves;
+
+    std::vector<Player*> const byFaction = StartMoveSetByFaction(eligible,
+        k, moves.to);
+
+    CFBGBestSplit::Problem problem;
+    for (auto const& [guid, player] : bg->GetPlayers())
+    {
+        if (!player ||
+            std::find(eligible.begin(), eligible.end(), player) !=
+                eligible.end())
+            continue;
+
+        TeamId const team = player->GetBgTeamId();
+        if (team == TEAM_ALLIANCE || team == TEAM_HORDE)
+            problem.baseLevel[team] += player->GetLevel();
+    }
+
+    for (Player* player : eligible)
+    {
+        bool const movedByFaction = std::find(byFaction.begin(),
+            byFaction.end(), player) != byFaction.end();
+
+        CFBGBestSplit::Item item;
+        item.size = 1;
+        item.level = player->GetLevel();
+        item.realA = player->GetTeamId(true) == TEAM_ALLIANCE ? 1 : 0;
+        item.current = movedByFaction ? moves.to : moves.from;
+        item.preferred = moves.to;
+        problem.items.push_back(item);
+    }
+
+    std::vector<uint8_t> const sides = CFBGBestSplit::Solve(problem);
+    for (std::size_t i = 0; i < eligible.size(); ++i)
+        if (sides[i] == moves.to)
+            moves.players.push_back(eligible[i]);
+
+    return moves;
+}
+
 void CFBG::BalanceTeamsAtStart(Battleground* bg)
 {
     // The gates just opened. Team selection was balanced when the invites went
@@ -489,6 +619,14 @@ void CFBG::BalanceTeamsAtStart(Battleground* bg)
 
     if (!bg || bg->isArena() || bg->isRated())
         return;
+
+    // Picked up front: a move never changes who else is eligible, and the
+    // loop below makes as many moves as the faction pick would.
+    bool const byLevel = UseStartMovesByLevel();
+    std::vector<Player*> levelMoves;
+    if (byLevel)
+        levelMoves = SelectStartMovesByLevel(bg).players;
+    std::size_t nextMove = 0;
 
     // Decide on physical head counts only: the pending reservations that never
     // materialised are exactly what produced the imbalance, so the invited ledger
@@ -506,34 +644,9 @@ void CFBG::BalanceTeamsAtStart(Battleground* bg)
         TeamId const larger = countA > countH ? TEAM_ALLIANCE : TEAM_HORDE;
         TeamId const smaller = larger == TEAM_ALLIANCE ? TEAM_HORDE : TEAM_ALLIANCE;
 
-        // Prefer flipping a faked player whose real faction is the smaller side:
-        // the flip just unfakes him back to native (least disruption). Otherwise
-        // take any flippable player on the larger side.
-        Player* toFlip = nullptr;
-        Player* fallback = nullptr;
-
-        for (auto const& [guid, player] : bg->GetPlayers())
-        {
-            if (!player || player->GetBgTeamId() != larger)
-                continue;
-
-            // Never split a real premade. Inside the BG the social party is the
-            // original group -- GetGroup() is the BG raid at this point.
-            if (IsPartyCommittedToBG(player, player->GetOriginalGroup(), bg))
-                continue;
-
-            if (IsPlayerFake(player) && player->GetTeamId(true) == smaller)
-            {
-                toFlip = player;
-                break;
-            }
-
-            if (!fallback)
-                fallback = player;
-        }
-
-        if (!toFlip)
-            toFlip = fallback;
+        Player* toFlip = byLevel
+            ? (nextMove < levelMoves.size() ? levelMoves[nextMove++] : nullptr)
+            : PickStartMoveByFaction(bg, larger, smaller);
 
         // Nothing left to flip: any residual imbalance is rooted in premades we
         // won't split. Open the match as-is -- the existing 5-minute premature
@@ -940,7 +1053,9 @@ std::array<uint32, 2> CFBG::GetProjectedBaseCounts(Battleground* bg, Battlegroun
     return counts;
 }
 
-void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam, uint32 allowedDiff)
+void CFBG::SelectBalancedGroups(BattlegroundQueue* queue,
+    BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam,
+    uint32 allowedDiff, uint32 minPerTeam)
 {
     auto base = GetProjectedBaseCounts(bg, queue, bracketId);
 
@@ -966,6 +1081,7 @@ void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId 
     std::array<uint32, 2> stagedCount{};
     std::array<uint32, 2> stagedLevelSum{};
     std::array<uint32, 2> stagedIlvlSum{};
+    bool hunterPass = false;
 
     // Stage: greedy FIFO pass onto the smaller projected side; groups are
     // staged whole -- a premade party is never split.
@@ -991,6 +1107,8 @@ void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId 
         ctx.evenCountH = ctx.countH;
 
         ctx.hunterOverride = bg ? ResolveHunterOverride(bg, cfInfo) : std::nullopt;
+        if (ctx.hunterOverride)
+            hunterPass = true;
         ctx.fallback = gInfo->teamId;
 
         TeamId team = ResolveBalancedTeam(ctx);
@@ -1072,6 +1190,13 @@ void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId 
         stagedCount[larger] -= dropGroup->Players.size();
     }
 
+    // The caller resets a formation that misses the minimum, but the teamId
+    // writes below stay as the next pass's fallback: keep the greedy sides.
+    if (!hunterPass && IsBestSplitPass() &&
+        base[TEAM_ALLIANCE] + stagedCount[TEAM_ALLIANCE] >= minPerTeam &&
+        base[TEAM_HORDE] + stagedCount[TEAM_HORDE] >= minPerTeam)
+        ApplyBestSplit(queue, bracketId, bg, staged, baseLevelSum);
+
     // Invite: write the staged selection into the pools; caps were enforced
     // while staging, so every AddGroup succeeds.
     queue->m_SelectionPools[TEAM_ALLIANCE].Init();
@@ -1087,13 +1212,123 @@ void CFBG::SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId 
     }
 }
 
+bool CFBG::IsBestSplitPass() const
+{
+    return IsEnableBalancedTeams() && IsEnableBestSplit() &&
+        !sBattlegroundMgr->isTesting();
+}
+
+void CFBG::ApplyBestSplit(BattlegroundQueue* queue,
+    BattlegroundBracketId bracketId, Battleground* bg,
+    std::array<GroupsList, 2>& staged,
+    std::array<uint32, 2> const& baseLevelSum)
+{
+    if (staged[TEAM_ALLIANCE].size() + staged[TEAM_HORDE].size() < 2)
+        return;
+
+    auto isStaged = [&staged](TeamId team, GroupQueueInfo const* gInfo)
+    {
+        return std::find(staged[team].begin(), staged[team].end(), gInfo) !=
+            staged[team].end();
+    };
+
+    CFBGBestSplit::Problem problem;
+    problem.keepCurrentUnlessLevelImproves = true;
+    problem.baseLevel = { baseLevelSum[TEAM_ALLIANCE],
+        baseLevelSum[TEAM_HORDE] };
+
+    GroupsList groups;
+    for (auto const& gInfo : queue->m_QueuedGroups[bracketId][BG_QUEUE_CFBG])
+    {
+        uint8 side;
+        if (isStaged(TEAM_ALLIANCE, gInfo))
+            side = TEAM_ALLIANCE;
+        else if (isStaged(TEAM_HORDE, gInfo))
+            side = TEAM_HORDE;
+        else
+            continue;
+
+        CFBGBestSplit::Item item;
+        item.size = gInfo->Players.size();
+        item.current = side;
+        item.preferred = side;
+        for (auto const& guid : gInfo->Players)
+        {
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
+            {
+                item.level += player->GetLevel();
+                item.ilvl += TruncatedIlvl(player);
+                if (player->GetTeamId(true) == TEAM_ALLIANCE)
+                    ++item.realA;
+            }
+            else if (gInfo->RealTeamID == TEAM_ALLIANCE)
+                ++item.realA;
+        }
+
+        problem.items.push_back(item);
+        groups.push_back(gInfo);
+    }
+
+    if (bg)
+    {
+        for (auto const& [guid, player] : bg->GetPlayers())
+            if (player)
+                problem.baseIlvl[player->GetTeamId()] += TruncatedIlvl(player);
+
+        auto const& queued = queue->m_QueuedGroups[bracketId][BG_QUEUE_CFBG];
+        for (auto const& gInfo : queued)
+        {
+            if (gInfo->IsInvitedToBGInstanceGUID != bg->GetInstanceID())
+                continue;
+
+            for (auto const& guid : gInfo->Players)
+                if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
+                    problem.baseIlvl[gInfo->teamId] += TruncatedIlvl(player);
+        }
+
+        // Accepted but not yet added to the BG: in neither term above.
+        std::shared_lock<std::shared_mutex> lock(
+            *HashMapHolder<Player>::GetLock());
+        for (auto const& [guid, player] : ObjectAccessor::GetPlayers())
+        {
+            if (!player || player->GetBattlegroundId() != bg->GetInstanceID() ||
+                !player->IsInvitedForBattlegroundInstance() ||
+                bg->GetPlayers().count(guid))
+                continue;
+
+            TeamId const team = player->GetBgTeamId();
+            if (team != TEAM_ALLIANCE && team != TEAM_HORDE)
+                continue;
+
+            problem.baseLevel[team] += player->GetLevel();
+            problem.baseIlvl[team] += TruncatedIlvl(player);
+        }
+    }
+
+    std::vector<uint8_t> const sides = CFBGBestSplit::Solve(problem);
+
+    bool changed = false;
+    for (std::size_t i = 0; i < sides.size(); ++i)
+        if (sides[i] != problem.items[i].current)
+            changed = true;
+
+    if (!changed)
+        return;
+
+    staged[TEAM_ALLIANCE].clear();
+    staged[TEAM_HORDE].clear();
+    for (std::size_t i = 0; i < groups.size(); ++i)
+        staged[sides[i]].push_back(groups[i]);
+}
+
 bool CFBG::CheckCrossFactionMatch(BattlegroundQueue* queue, BattlegroundBracketId bracket_id, uint32 minPlayers, uint32 maxPlayers)
 {
     if (!IsEnableSystem())
         return false;
 
     bool isTesting = sBattlegroundMgr->isTesting();
-    SelectBalancedGroups(queue, bracket_id, nullptr, maxPlayers, isTesting ? maxPlayers : (IsEnableEvenTeams() ? 0 : 1));
+    SelectBalancedGroups(queue, bracket_id, nullptr, maxPlayers,
+        isTesting ? maxPlayers : (IsEnableEvenTeams() ? 0 : 1), minPlayers);
 
     // Mirror core CanStartMatch's testing arm: under .debug bg a single
     // non-empty pool is enough to start (1v0), so skip the pool reset.
@@ -1132,7 +1367,8 @@ bool CFBG::FillPlayersToCFBG(BattlegroundQueue* bgqueue, Battleground* bg, Battl
 
     // Cap on GetMaxPlayersPerTeam, not GetFreeSlotsForTeam: the latter imposes
     // no relative cap with Battleground.InvitationType = 0.
-    SelectBalancedGroups(bgqueue, bracket_id, bg, bg->GetMaxPlayersPerTeam(), allowedDiff);
+    SelectBalancedGroups(bgqueue, bracket_id, bg, bg->GetMaxPlayersPerTeam(),
+        allowedDiff, 0);
     return true;
 }
 

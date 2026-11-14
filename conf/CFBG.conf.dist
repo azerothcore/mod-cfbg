@@ -91,6 +91,25 @@
 #                    players of level 17, 18, 19 (>= 19-2)
 #       Default: 2
 #
+#   CFBG.BalancedTeams.BestSplit.Enabled
+#       Description: Only takes effect when CFBG.BalancedTeams = 1. The same
+#                    players are invited as without it, and each team keeps
+#                    the number of players it would get without it, but the
+#                    players are split between the teams so the team level
+#                    sums are as close as possible (then the item level sums,
+#                    then the fewest players on their opposite faction). The
+#                    split is exact for up to 20 solos or premades invited at
+#                    once and best effort above that. Teams only change when
+#                    the level sums get strictly closer. Premades stay
+#                    together, and players already in or invited to the
+#                    battleground keep their team. This split is skipped in
+#                    low-level passes where the hunter balancing applies and
+#                    in .debug bg mode. The option also makes the gate-open
+#                    repair choose by level whom it moves, in .debug bg mode
+#                    too (see CFBG.BalanceTeamsAtStart.Enabled).
+#       Default: 1 - (Enabled)
+#                0 - (Disabled)
+#
 #   CFBG.Players.Count.In.Group
 #       Description: Maximum players in party for enter queue
 #       Default: 3
@@ -130,6 +149,13 @@
 #                    solo player merely sitting in a social/questing party still
 #                    counts as flippable. Decisions use live head counts only, so
 #                    reservations that never showed up don't skew the repair.
+#                    When CFBG.BalancedTeams = 1 and
+#                    CFBG.BalancedTeams.BestSplit.Enabled = 1, the players moved
+#                    are the ones that leave the team level sums closest,
+#                    preferring players who return to their own faction. The
+#                    choice is exact for up to 20 movable players and best
+#                    effort above that. The number of players moved is the same
+#                    either way.
 #       Default: 1 - (Enabled)
 #                0 - (Disabled)
 
@@ -140,6 +166,7 @@ CFBG.Battlefield.NativePriority.Enable = 1
 CFBG.Battlefield.ReapplyOnResurrect.Enable = 1
 CFBG.Battlefield.SkipClasses = ""
 CFBG.BalancedTeams = 1
+CFBG.BalancedTeams.BestSplit.Enabled = 1
 CFBG.BalancedTeams.Class.LowLevel = 0
 CFBG.BalancedTeams.Class.MinLevel = 10
 CFBG.BalancedTeams.Class.MaxLevel = 19
