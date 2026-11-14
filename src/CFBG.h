@@ -109,6 +109,14 @@ struct TeamBalanceContext
     TeamId fallback{ TEAM_NEUTRAL }; // provisional / candidate team
 };
 
+// Players the gate-open repair moves, in GUID order.
+struct CFBGStartMoves
+{
+    TeamId from = TEAM_NEUTRAL;
+    TeamId to = TEAM_NEUTRAL;
+    std::vector<Player*> players;
+};
+
 class CFBG
 {
 public:
@@ -127,6 +135,7 @@ public:
     inline bool IsWGSkipClass(uint8 playerClass) const { return _wgSkipClasses.count(playerClass) > 0; }
     inline bool IsEnableAvgIlvl() const { return _IsEnableAvgIlvl; }
     inline bool IsEnableBalancedTeams() const { return _IsEnableBalancedTeams; }
+    inline bool IsEnableBestSplit() const { return _IsEnableBestSplit; }
     inline bool IsEnableBalanceClassLowLevel() const { return _IsEnableBalanceClassLowLevel; }
     inline bool IsEnableEvenTeams() const { return _IsEnableEvenTeams; }
     inline bool IsEnableResetCooldowns() const { return _IsEnableResetCooldowns; }
@@ -200,6 +209,8 @@ public:
     inline auto GetRaceInfo() { return &_raceInfo; }
 
 private:
+    friend struct CFBGTestAccess;
+
     bool isClassJoining(uint8 _class, Player* player, uint32 minLevel);
 
     // Live, bg-gated hunter-class override for the reinforcement path. Returns a
@@ -226,7 +237,25 @@ private:
 
     // Unified stage->repair->invite selection (formation + reinforcement): fills
     // m_SelectionPools keeping projected sizes within allowedDiff, premades atomic.
-    void SelectBalancedGroups(BattlegroundQueue* queue, BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam, uint32 allowedDiff);
+    void SelectBalancedGroups(BattlegroundQueue* queue,
+        BattlegroundBracketId bracketId, Battleground* bg, uint32 maxPerTeam,
+        uint32 allowedDiff, uint32 minPerTeam);
+
+    bool IsBestSplitPass() const;
+
+    Player* PickStartMoveByFaction(Battleground* bg, TeamId larger,
+        TeamId smaller);
+    bool UseStartMovesByLevel() const;
+    std::vector<Player*> StartMoveSetByFaction(
+        std::vector<Player*> const& eligible, std::size_t k, TeamId to);
+    CFBGStartMoves SelectStartMovesByLevel(Battleground* bg);
+
+    // Re-chooses the side of each staged group; per-side head counts and
+    // the set of staged groups stay the same.
+    void ApplyBestSplit(BattlegroundQueue* queue,
+        BattlegroundBracketId bracketId, Battleground* bg,
+        std::array<GroupsList, 2>& staged,
+        std::array<uint32, 2> const& baseLevelSum);
 
     std::unordered_map<Player*, FakePlayer> _fakePlayerStore;
     std::unordered_map<ObjectGuid, TeamId> _wgWarAssignmentStore;
@@ -252,6 +281,7 @@ private:
     std::unordered_set<uint8> _wgSkipClasses;
     bool _IsEnableAvgIlvl;
     bool _IsEnableBalancedTeams;
+    bool _IsEnableBestSplit;
     bool _IsEnableBalanceClassLowLevel;
     bool _IsEnableEvenTeams;
     bool _IsEnableResetCooldowns;
